@@ -1,0 +1,22 @@
+[package]
+name = "lol-client"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "lol_client_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", default-features = false, features = ["native-tls"] }
+tokio = { version = "1", features = ["time"] }
+tokio-tungstenite = { version = "0.26", features = ["native-tls"] }
+native-tls = "0.2"
+futures-util = "0.3"
+base64 = "0.22"

@@ -1,0 +1,197 @@
+//! Desktop side of the app: the only code that talks to the League client's local API.
+//! It reads the lockfile, forwards requests from the UI, serves the client's own images,
+//! and relays the client's events to the window.
+
+use std::time::Duration;
+
+use base64::{engine::general_purpose::STANDARD, Engine};
+use futures_util::{SinkExt, StreamExt};
+use serde::Serialize;
+use serde_json::{json, Value};
+use tauri::{
+    http::Response,
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    Emitter, Manager,
+};
+use tokio_tungstenite::{
+    connect_async_tls_with_config,
+    tungstenite::{client::IntoClientRequest, Message},
+    Connector,
+};
+
+struct Lcu {
+    port: String,
+    auth: String,
+}
+
+fn parse_lockfile(s: &str) -> Option<Lcu> {
+    let p: Vec<&str> = s.trim().split(':').collect();
+    (p.len() >= 5 && p[2].parse::<u16>().is_ok()).then(|| Lcu {
+        port: p[2].into(),
+        auth: format!("Basic {}", STANDARD.encode(format!("riot:{}", p[3]))),
+    })
+}
+
+/// Finds the running client. Re-read on every use: port and password change at each start,
+/// and the install folder differs from one PC to another (the Riot Client records it).
+fn lockfile() -> Option<Lcu> {
+    let data = std::env::var("PROGRAMDATA").ok()?;
+    let installs = std::fs::read_to_string(format!("{data}\\Riot Games\\RiotClientInstalls.json")).ok()?;
+    let installs: Value = serde_json::from_str(&installs).ok()?;
+    installs["associated_client"].as_object()?.keys().find_map(|dir| {
+        parse_lockfile(&std::fs::read_to_string(std::path::Path::new(dir).join("lockfile")).ok()?)
+    })
+}
+
+// shortcut: certificate check is off because the client uses a self-signed cert and every
+// request here goes to 127.0.0.1; pin Riot's root cert before this client calls anything else.
+fn http_client() -> reqwest::Client {
+    reqwest::Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .expect("http client")
+}
+
+#[derive(Serialize)]
+struct Reply {
+    status: u16,
+    body: String,
+}
+
+async fn request(http: &reqwest::Client, method: &str, path: &str, body: Option<String>) -> Result<reqwest::Response, String> {
+    // The path is appended to the host: without the leading slash it could rewrite the host.
+    if !path.starts_with('/') {
+        return Err("percorso non valido".into());
+    }
+    let l = lockfile().ok_or("Il client di League non è avviato.")?;
+    let method = reqwest::Method::from_bytes(method.as_bytes()).map_err(|e| e.to_string())?;
+    let mut rq = http
+        .request(method, format!("https://127.0.0.1:{}{}", l.port, path))
+        .header("Authorization", l.auth);
+    if let Some(b) = body {
+        rq = rq.header("Content-Type", "application/json").body(b);
+    }
+    rq.send().await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn lcu(http: tauri::State<'_, reqwest::Client>, method: String, path: String, body: Option<String>) -> Result<Reply, String> {
+    let r = request(&http, &method, &path, body).await?;
+    Ok(Reply {
+        status: r.status().as_u16(),
+        body: r.text().await.map_err(|e| e.to_string())?,
+    })
+}
+
+/// `lcu://` serves images straight from the client (splash art, profile icons). GET only.
+async fn image(http: reqwest::Client, path: String) -> Response<Vec<u8>> {
+    let fetched = async {
+        let r = request(&http, "GET", &path, None).await.ok()?;
+        let kind = r.headers().get("content-type")?.to_str().ok()?.to_owned();
+        Some((r.status().as_u16(), kind, r.bytes().await.ok()?.to_vec()))
+    };
+    let (status, kind, bytes) = fetched.await.unwrap_or((502, "text/plain".into(), Vec::new()));
+    Response::builder()
+        .status(status)
+        .header("content-type", kind)
+        .body(bytes)
+        .expect("response")
+}
+
+type Socket = tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>;
+
+async fn connect(l: &Lcu) -> Option<Socket> {
+    let mut rq = format!("wss://127.0.0.1:{}/", l.port).into_client_request().ok()?;
+    rq.headers_mut().insert("Authorization", l.auth.parse().ok()?);
+    let tls = native_tls::TlsConnector::builder()
+        .danger_accept_invalid_certs(true) // same shortcut as http_client
+        .build()
+        .ok()?;
+    let (ws, _) = connect_async_tls_with_config(rq, None, false, Some(Connector::NativeTls(tls))).await.ok()?;
+    Some(ws)
+}
+
+/// Keeps one event subscription open for as long as the app runs, reconnecting when the
+/// client restarts. The UI hears everything on the `lcu` event.
+async fn relay_events(app: tauri::AppHandle) {
+    loop {
+        if let Some(mut ws) = match lockfile() {
+            Some(l) => connect(&l).await,
+            None => None,
+        } {
+            let _ = ws.send(Message::Text(r#"[5,"OnJsonApiEvent"]"#.into())).await;
+            let _ = app.emit("lcu", json!({ "uri": "/bridge", "data": "connected" }));
+            while let Some(Ok(msg)) = ws.next().await {
+                let Message::Text(text) = msg else { continue };
+                if let Ok(frame) = serde_json::from_str::<Value>(text.as_str()) {
+                    if let Some(event) = frame.get(2) {
+                        let _ = app.emit("lcu", event);
+                    }
+                }
+            }
+            let _ = app.emit("lcu", json!({ "uri": "/bridge", "data": "disconnected" }));
+        }
+        tokio::time::sleep(Duration::from_secs(2)).await;
+    }
+}
+
+pub fn run() {
+    tauri::Builder::default()
+        .manage(http_client())
+        .invoke_handler(tauri::generate_handler![lcu])
+        .register_asynchronous_uri_scheme_protocol("lcu", |ctx, rq, responder| {
+            let http = ctx.app_handle().state::<reqwest::Client>().inner().clone();
+            let path = rq.uri().path_and_query().map(|p| p.as_str().to_owned()).unwrap_or_default();
+            tauri::async_runtime::spawn(async move { responder.respond(image(http, path).await) });
+        })
+        .setup(|app| {
+            tauri::async_runtime::spawn(relay_events(app.handle().clone()));
+            TrayIconBuilder::new()
+                .icon(app.default_window_icon().expect("app icon").clone())
+                .tooltip("LoL client")
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = event {
+                        if let Some(w) = tray.app_handle().get_webview_window("main") {
+                            let _ = w.show();
+                            let _ = w.unminimize();
+                            let _ = w.set_focus();
+                        }
+                    }
+                })
+                .build(app)?;
+            Ok(())
+        })
+        .run(tauri::generate_context!())
+        .expect("error while running the app");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn lockfile_is_parsed_and_garbage_is_refused() {
+        let l = parse_lockfile("LeagueClient:1234:58305:s3cret:https\n").unwrap();
+        assert_eq!(l.port, "58305");
+        assert_eq!(l.auth, format!("Basic {}", STANDARD.encode("riot:s3cret")));
+        assert!(parse_lockfile("").is_none());
+        assert!(parse_lockfile("LeagueClient:1234:notaport:pw:https").is_none());
+    }
+
+    #[test]
+    fn a_path_cannot_redirect_the_request_to_another_host() {
+        let err = tauri::async_runtime::block_on(request(&http_client(), "GET", "@evil.example/", None));
+        assert_eq!(err.unwrap_err(), "percorso non valido");
+    }
+
+    /// Needs a running, logged-in League client: `cargo test -- --ignored`.
+    #[test]
+    #[ignore]
+    fn talks_to_the_running_client() {
+        tauri::async_runtime::block_on(async {
+            let r = request(&http_client(), "GET", "/lol-gameflow/v1/gameflow-phase", None).await.unwrap();
+            assert_eq!(r.status().as_u16(), 200);
+            assert!(connect(&lockfile().unwrap()).await.is_some(), "event socket");
+        });
+    }
+}
