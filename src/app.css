@@ -46,11 +46,26 @@ section, .friends, .account .pill, .menu, .work > .notice { background: var(--so
 .glass :is(section, .friends, .account .pill, .menu, .work > .notice) { background: var(--glass); backdrop-filter: blur(22px) saturate(1.4); }
 
 main { display: flex; flex-direction: column; height: 100%; min-width: 0; }
-.status { padding: 40px 300px 18px 32px; }
-.status p { margin-top: 6px; }
-.clock { font-family: var(--ui); font-variant-numeric: tabular-nums; letter-spacing: 0; color: var(--teal); margin-left: 8px; }
-.body { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 32px 24px; }
-.work { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-content: start; max-width: 860px; }
+/* Status: a small lit label, then the one thing that matters at this stage, set large on the picture */
+.status { padding: 30px 300px 14px 32px; text-shadow: 0 2px 18px rgb(1 10 19 / 0.7); }
+.status h1 { font-size: 36px; }
+.status p { margin-top: 6px; color: var(--muted); }
+.status .eyebrow { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; font: 400 12px/1.5 var(--display); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); }
+.eyebrow::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 0 4px rgb(25 214 199 / 0.18), 0 0 14px var(--teal); animation: pulse 2.4s ease-in-out infinite; }
+[data-stage="off"] .eyebrow::before { background: var(--red); box-shadow: 0 0 0 4px rgb(255 143 152 / 0.18); animation: none; }
+[data-stage="queue"] .eyebrow::before { animation-duration: 1s; }
+@keyframes pulse { 50% { opacity: 0.45; } }
+.seats { display: flex; align-items: center; gap: 10px; }
+.pips { display: flex; gap: 4px; }
+.pips i { width: 14px; height: 4px; border-radius: 2px; background: var(--fill-on); }
+.pips .on { background: var(--teal); }
+.status .clock { font: 300 44px/1 var(--ui); font-variant-numeric: tabular-nums; letter-spacing: 0; color: var(--teal); }
+/* Never scrolls: it would slide under the bar below. The mode picker gives up height instead. */
+/* Not clipped either: clipping cuts the panels' shadows in a straight line above the bar. */
+.body { flex: 1; min-height: 0; padding: 4px 32px 16px; }
+.work { display: flex; flex-direction: column; gap: 16px; height: 100%; max-width: 860px; }
+.work > * { flex: none; }
+.work > .pick { flex: 0 1 284px; min-height: 0; display: flex; flex-direction: column; }
 section { padding: 18px; }
 .head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .chevron { width: 16px; height: 16px; color: var(--muted); transition: transform 0.25s var(--ease); }
@@ -84,19 +99,46 @@ section { padding: 18px; }
 .drawer > div { min-height: 0; overflow: hidden; }
 .friends.open .drawer { grid-template-rows: 1fr; opacity: 1; visibility: visible; transition-delay: 0s; }
 
-/* Party */
-.party { display: grid; gap: 6px; }
-.member { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto auto; align-items: center; gap: 12px; min-height: 56px; padding: 8px 16px 8px 8px; background: var(--fill); border-radius: 14px; }
+/* Party: one slot per seat, side by side like Riot's lobby */
+.party { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.party > li:not(.member) { display: grid; }
+.member { position: relative; display: grid; justify-items: center; align-content: start; gap: 4px; min-width: 0; min-height: 114px; padding: 10px 8px 8px; background: var(--fill); border-radius: 14px; text-align: center; }
 .member img { border-radius: 50%; }
-.member-name { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.member-name { display: flex; align-items: center; gap: 6px; max-width: 100%; font-weight: 600; }
+.member-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .member-name svg { width: 16px; height: 16px; color: var(--gold); }
-.member-roles { font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--gold); }
-.member.free { display: flex; min-height: 0; padding: 6px 16px; background: none; color: var(--muted); font-size: 12px; }
+.member-roles { display: flex; gap: 6px; }
+.member-team { font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--gold); }
+.role { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; background: none; border-radius: 50%; color: var(--gold); }
+button.role { background: var(--fill-hi); }
+button.role:hover:not(:disabled) { background: var(--fill-on); }
+button.role:disabled { opacity: 0.45; }
+.glyph { width: 20px; height: 20px; fill: currentColor; stroke: none; }
+.member.free { align-content: center; gap: 6px; background: rgb(255 255 255 / 0.03); color: var(--muted); font-size: 12px; }
+button.member.free:hover:not(:disabled) { background: var(--fill); color: var(--cream); }
+.member-actions { position: absolute; top: 6px; right: 6px; display: grid; gap: 4px; }
+.member-actions .icon { width: 24px; height: 24px; }
+.member-actions svg { width: 14px; height: 14px; }
+/* More than five seats (custom games): slim rows, five across. */
+.big .member { grid-template-columns: 32px minmax(0, 1fr); justify-items: start; align-content: center; column-gap: 10px; row-gap: 0; min-height: 48px; padding: 6px 10px; text-align: left; }
+.big .member img { grid-row: span 2; width: 32px; height: 32px; }
+.big .member:has(.member-actions) { padding-right: 62px; }
+.big .member-actions { top: 12px; grid-auto-flow: column; }
+.big .member.free { display: flex; align-items: center; }
+
+/* The role menu is a native popover: it closes on Esc or a click elsewhere, and hangs from its button. */
+.role-menu { inset: auto; top: anchor(bottom); left: anchor(left); margin: 6px 0 0; padding: 6px; gap: 4px; border: 0; border-radius: 18px; background: var(--solid); box-shadow: var(--edge), var(--lift); color: inherit; opacity: 0; transform: translateY(-6px); transition: opacity 0.15s, transform 0.25s var(--ease), display 0.25s allow-discrete, overlay 0.25s allow-discrete; }
+.glass .role-menu { background: rgb(10 18 34 / 0.82); backdrop-filter: blur(22px) saturate(1.4); }
+.role-menu:popover-open { display: flex; opacity: 1; transform: none; }
+@starting-style { .role-menu:popover-open { opacity: 0; transform: translateY(-6px); } }
+.role-menu button { display: grid; justify-items: center; gap: 2px; width: 54px; color: var(--gold); padding: 8px 0 6px; font-size: 11px; }
+.role-menu button[aria-checked="true"] { color: var(--teal); }
+.role-menu .glyph { width: 24px; height: 24px; }
 
 /* Queue and role pickers */
 /* Mode picker: a row of map cards. The open one takes the room and shows its queues;
    the others wait as slim, dimmed strips of their own artwork. */
-.modes { display: flex; gap: 8px; height: 216px; }
+.modes { flex: 1; min-height: 0; display: flex; gap: 8px; }
 .mode { position: relative; isolation: isolate; flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; background: var(--fill); transition: flex-grow 0.55s var(--ease); }
 .mode.open { flex-grow: 3.4; }
 .mode-art { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; object-fit: cover; filter: brightness(0.4) saturate(0.7); transform: scale(1.12); transition: filter 0.55s var(--ease), transform 0.9s var(--ease); }
@@ -124,10 +166,6 @@ section { padding: 18px; }
 .variants button[aria-checked="true"]:hover:not(:disabled) { background: #5cebdf; }
 .variants button[aria-checked="true"] small { color: inherit; opacity: 0.75; }
 [role="radio"] { background: var(--fill); border-radius: 14px; transition: background 0.15s; }
-.roles { display: grid; grid-template-columns: 64px repeat(6, minmax(0, 1fr)); align-items: center; gap: 6px; }
-.roles + .roles { margin-top: 6px; }
-.roles-label { font-size: 12px; color: var(--muted); }
-.roles button { padding: 8px 2px; font-size: 13px; border-radius: 999px; }
 [role="radio"]:hover:not(:disabled) { background: var(--fill-hi); }
 [role="radio"][aria-checked="true"] { background: var(--fill-on); box-shadow: inset 0 0 0 1.5px var(--teal); }
 [role="radio"]:disabled { opacity: 0.45; }
@@ -150,7 +188,6 @@ aside section { padding: 16px; }
 .chat-with span { display: grid; min-width: 0; }
 .chat-with:hover { background: var(--fill); }
 .badge { flex: none; min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--teal); color: #01221f; font-size: 12px; font-weight: 600; line-height: 18px; text-align: center; }
-.member-actions { display: flex; gap: 6px; }
 .head:has(.head-actions) { align-items: center; min-height: 28px; }
 .head-actions { display: flex; align-items: center; gap: 14px; }
 .chip { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; background: var(--fill-hi); border-radius: 999px; font-size: 13px; }

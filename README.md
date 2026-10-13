@@ -73,8 +73,11 @@ client's own description of it (patch 16.20), saved from the `/help` endpoint.
 
 | Path | What it is |
 | --- | --- |
-| `src/App.svelte`, `src/app.css` | The whole interface |
+| `src/App.svelte` | The frame: which parts are on screen at each stage |
+| `src/components/` | One file per part: `Account`, `Status`, `Party`, `ModePicker`, `Friends`, `Chat`, `Bar` |
+| `src/app.css` | All the styling |
 | `src/lib/client.svelte.js` | Live client state and every action the interface can take |
+| `src/lib/view.svelte.js` | What several parts need to know, worked out once (stage, party, seats) |
 | `src/lib/lcu.js` | Transport: Tauri inside the app, `bridge.mjs` in a browser |
 | `src/lib/usage.js` | Turns match history into proposed queue and roles |
 | `src/lib/win.js` | Window behaviour (tray, minimize, focus) and the match-found sound |
