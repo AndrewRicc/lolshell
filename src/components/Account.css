@@ -1,0 +1,20 @@
+/* Frameless window: a drag strip across the top with the two window buttons at its end */
+.titlebar { position: absolute; inset: 0 0 auto 0; z-index: 3; height: 44px; display: flex; justify-content: flex-end; align-items: center; gap: 2px; padding-right: 12px; }
+.titlebar .win { display: grid; place-items: center; width: 34px; height: 30px; background: none; border-radius: 8px; color: var(--muted); }
+.titlebar .win svg { width: 16px; height: 16px; }
+.titlebar .win:hover { background: var(--fill-hi); color: var(--cream); }
+.titlebar .win:last-child:hover { background: #c42b3a; color: #fff; }
+
+.account { position: absolute; top: 48px; right: 24px; z-index: 4; }
+.account .pill { display: flex; align-items: center; gap: 12px; padding: 6px 12px 6px 18px; border-radius: 999px; }
+.account .pill:hover { background-color: rgb(22 34 58 / 0.62); }
+.account .who { display: grid; text-align: right; line-height: 1.25; }
+.account .who b { font-weight: 600; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account img { border-radius: 50%; }
+.account .menu { position: absolute; right: 0; top: 60px; width: 296px; display: grid; gap: 14px; padding: 18px; }
+.account .menu label { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+
+/* Opening and closing: the options drop out of the account pill, the friends list rises out
+   of its pill. Closing plays the same motion backwards before the content is hidden. */
+.account .menu { transform-origin: calc(100% - 28px) -8px; transform: translateY(-10px) scale(0.94); opacity: 0; visibility: hidden; transition: transform 0.3s var(--ease), opacity 0.18s, visibility 0s 0.3s; }
+.account.open .menu { transform: none; opacity: 1; visibility: visible; transition-delay: 0s; }

@@ -2,7 +2,7 @@
 //! It reads the lockfile, forwards requests from the UI, serves the client's own images,
 //! and relays the client's events to the window.
 
-use std::time::Duration;
+use std::{sync::LazyLock, time::Duration};
 
 use base64::{engine::general_purpose::STANDARD, Engine};
 use futures_util::{SinkExt, StreamExt};
@@ -48,9 +48,15 @@ fn lockfile() -> Option<Lcu> {
 fn http_client() -> reqwest::Client {
     reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
+        .pool_max_idle_per_host(CONNECTIONS)
         .build()
         .expect("http client")
 }
+
+// The client stops accepting connections after a couple of hundred: a champion grid asks for
+// every icon at once, so requests wait for one of a few connections, as a browser would.
+const CONNECTIONS: usize = 6;
+static GATE: LazyLock<tokio::sync::Semaphore> = LazyLock::new(|| tokio::sync::Semaphore::new(CONNECTIONS));
 
 #[derive(Serialize)]
 struct Reply {
@@ -58,7 +64,8 @@ struct Reply {
     body: String,
 }
 
-async fn request(http: &reqwest::Client, method: &str, path: &str, body: Option<String>) -> Result<reqwest::Response, String> {
+/// Status, content type and body: read in full while holding one of the few connections.
+async fn request(http: &reqwest::Client, method: &str, path: &str, body: Option<String>) -> Result<(u16, Option<String>, Vec<u8>), String> {
     // The path is appended to the host: without the leading slash it could rewrite the host.
     if !path.starts_with('/') {
         return Err("percorso non valido".into());
@@ -71,26 +78,24 @@ async fn request(http: &reqwest::Client, method: &str, path: &str, body: Option<
     if let Some(b) = body {
         rq = rq.header("Content-Type", "application/json").body(b);
     }
-    rq.send().await.map_err(|e| e.to_string())
+    let _permit = GATE.acquire().await.map_err(|e| e.to_string())?;
+    let r = rq.send().await.map_err(|e| e.to_string())?;
+    let kind = r.headers().get("content-type").and_then(|v| v.to_str().ok()).map(str::to_owned);
+    Ok((r.status().as_u16(), kind, r.bytes().await.map_err(|e| e.to_string())?.to_vec()))
 }
 
 #[tauri::command]
 async fn lcu(http: tauri::State<'_, reqwest::Client>, method: String, path: String, body: Option<String>) -> Result<Reply, String> {
-    let r = request(&http, &method, &path, body).await?;
-    Ok(Reply {
-        status: r.status().as_u16(),
-        body: r.text().await.map_err(|e| e.to_string())?,
-    })
+    let (status, _, body) = request(&http, &method, &path, body).await?;
+    Ok(Reply { status, body: String::from_utf8_lossy(&body).into_owned() })
 }
 
 /// `lcu://` serves images straight from the client (splash art, profile icons). GET only.
 async fn image(http: reqwest::Client, path: String) -> Response<Vec<u8>> {
-    let fetched = async {
-        let r = request(&http, "GET", &path, None).await.ok()?;
-        let kind = r.headers().get("content-type")?.to_str().ok()?.to_owned();
-        Some((r.status().as_u16(), kind, r.bytes().await.ok()?.to_vec()))
+    let (status, kind, bytes) = match request(&http, "GET", &path, None).await {
+        Ok((status, Some(kind), bytes)) => (status, kind, bytes),
+        _ => (502, "text/plain".into(), Vec::new()),
     };
-    let (status, kind, bytes) = fetched.await.unwrap_or((502, "text/plain".into(), Vec::new()));
     Response::builder()
         .status(status)
         .header("content-type", kind)
@@ -189,8 +194,8 @@ mod tests {
     #[ignore]
     fn talks_to_the_running_client() {
         tauri::async_runtime::block_on(async {
-            let r = request(&http_client(), "GET", "/lol-gameflow/v1/gameflow-phase", None).await.unwrap();
-            assert_eq!(r.status().as_u16(), 200);
+            let (status, _, _) = request(&http_client(), "GET", "/lol-gameflow/v1/gameflow-phase", None).await.unwrap();
+            assert_eq!(status, 200);
             assert!(connect(&lockfile().unwrap()).await.is_some(), "event socket");
         });
     }

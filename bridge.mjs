@@ -30,6 +30,13 @@ if (process.argv.includes('--selftest')) {
   process.exit(0);
 }
 
+// The client stops accepting connections after a couple of hundred: a champion grid asks for every
+// icon at once, so requests wait for one of a few slots, as in src-tauri/src/lib.rs.
+let free = 6;
+const waiting = [];
+const slot = () => (free > 0 ? (free--, Promise.resolve()) : new Promise((r) => waiting.push(r)));
+const release = () => (waiting.length ? waiting.shift()() : free++);
+
 const clients = new Set();
 const emit = (ev) => { for (const c of clients) c.write(`data: ${JSON.stringify(ev)}\n\n`); };
 
@@ -56,6 +63,7 @@ http.createServer(async (req, res) => {
     return req.on('close', () => clients.delete(res));
   }
   if (req.url.startsWith('/lcu/')) {
+    await slot();
     try {
       const { port, auth } = lcu();
       const body = ['GET', 'HEAD'].includes(req.method) ? undefined : Buffer.concat(await req.toArray());
@@ -67,6 +75,8 @@ http.createServer(async (req, res) => {
     } catch (e) {
       return res.writeHead(502, { 'Content-Type': 'application/json' })
         .end(JSON.stringify({ error: String(e.cause?.code ?? e.code ?? e.message) }));
+    } finally {
+      release();
     }
   }
   res.writeHead(404).end();

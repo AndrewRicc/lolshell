@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite';
-import { svelte } from '@sveltejs/vite-plugin-svelte';
+import react from '@vitejs/plugin-react';
 
 const DEV = 'http://127.0.0.1:1420';
 const BRIDGE = 'http://127.0.0.1:5757';
@@ -16,7 +16,7 @@ const toBridge = {
 };
 
 export default defineConfig({
-  plugins: [svelte()],
+  plugins: [react()],
   clearScreen: false,
   server: {
     host: '127.0.0.1', port: 1420, strictPort: true,

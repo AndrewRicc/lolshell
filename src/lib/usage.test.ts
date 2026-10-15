@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { summarize } from './usage.js';
+import { summarize } from './usage.ts';
 
-const game = (queueId, lane, role) => ({ queueId, participants: [{ timeline: { lane, role } }] });
+const game = (queueId: number, lane: string, role: string) => ({ queueId, participants: [{ timeline: { lane, role } }] });
 
 test('counts queues and proposes the two most played lanes', () => {
   const s = summarize([

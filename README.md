@@ -19,12 +19,16 @@ automatically for everything lolshell does not cover yet.
 - **Queue**: one click to create the lobby, set roles and start searching. Timer and estimated
   wait while in queue.
 - **Match found**: the window comes forward with a sound. An auto-accept switch accepts for you.
+- **Champion select**: both teams, bans, turn timer, searchable champion grid, lock in, summoner
+  spells, rune pages (pick one, edit it or build a new one, starting from the client's recommended
+  pages); in ARAM the bench, rerolls and champion swaps with teammates.
 - **Friends**: the full list with presence, invites to your party, friend requests in and out.
 - **Chat**: party chat and private conversations, with unread counts.
 - **Window**: fixed 1280x720, frameless, with a tray icon.
 
-Champion select, post-game, store, loot and TFT are not implemented: when a game reaches champion
-select, lolshell brings Riot's interface back.
+Skins, post-game, store, loot and TFT are not implemented: Riot's interface covers them.
+Champion select has been through custom draft games (ban, pick, lock in, quit); ARAM bench,
+rerolls, swaps and rune saving have only been exercised against simulated sessions so far.
 
 ## Requirements
 
@@ -52,7 +56,7 @@ npm run tauri build
 ## How it works
 
 ```
-lolshell window (Svelte)
+lolshell window (React + TypeScript)
         |  invoke("lcu") / "lcu" events / lcu:// images
 Rust side (src-tauri)
         |  HTTPS + WebSocket on 127.0.0.1, credentials from the lockfile
@@ -73,14 +77,14 @@ client's own description of it (patch 16.20), saved from the `/help` endpoint.
 
 | Path | What it is |
 | --- | --- |
-| `src/App.svelte` | The frame: which parts are on screen at each stage |
-| `src/components/` | One file per part: `Account`, `Status`, `Party`, `ModePicker`, `Friends`, `Chat`, `Bar` |
-| `src/app.css` | All the styling |
-| `src/lib/client.svelte.js` | Live client state and every action the interface can take |
-| `src/lib/view.svelte.js` | What several parts need to know, worked out once (stage, party, seats) |
-| `src/lib/lcu.js` | Transport: Tauri inside the app, `bridge.mjs` in a browser |
-| `src/lib/usage.js` | Turns match history into proposed queue and roles |
-| `src/lib/win.js` | Window behaviour (tray, minimize, focus) and the match-found sound |
+| `src/App.tsx` | The frame: which parts are on screen at each stage (styles in `src/shell.css`) |
+| `src/components/` | One `.tsx` per part, with its own `.css` whose rules all start from the part's root: `Account`, `Status`, `Party`, `ModePicker`, `Friends`, `Chat`, `Bar`, and for champion select `Select`, `Team`, `ChampGrid`, `Spells` |
+| `src/app.css` | Design tokens, element defaults and the few styles several parts share; the rest lives in each component |
+| `src/lib/client.ts` | Live client state and every action the interface can take; the state is a [valtio](https://valtio.dev) proxy, mutated in place by client events and read by components through a hook |
+| `src/lib/view.ts` | What several parts need to know, worked out once (stage, party, seats) |
+| `src/lib/lcu.ts` | Transport: Tauri inside the app, `bridge.mjs` in a browser |
+| `src/lib/usage.ts` | Turns match history into proposed queue and roles |
+| `src/lib/win.ts` | Window behaviour (tray, minimize, focus) and the match-found sound |
 | `src-tauri/src/lib.rs` | Lockfile discovery, request proxy, image scheme, event relay, tray |
 | `bridge.mjs` | Development-only stand-in for the Rust side |
 

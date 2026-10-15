@@ -5,8 +5,10 @@ import { listen } from '@tauri-apps/api/event';
 
 const tauri = '__TAURI_INTERNALS__' in window;
 
-async function raw(method, path, body) {
-  if (tauri) return invoke('lcu', { method, path, body: body === undefined ? null : JSON.stringify(body) });
+type Reply = { status: number; body: string };
+
+async function raw(method: string, path: string, body?: unknown): Promise<Reply> {
+  if (tauri) return invoke<Reply>('lcu', { method, path, body: body === undefined ? null : JSON.stringify(body) });
   const r = await fetch('/lcu' + path, {
     method,
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -14,9 +16,10 @@ async function raw(method, path, body) {
   return { status: r.status, body: await r.text() };
 }
 
-export async function lcu(method, path, body) {
+// The client's replies are untyped JSON: the one place `any` is allowed in, callers give it a shape.
+export async function lcu(method: string, path: string, body?: unknown): Promise<any> {
   const r = await raw(method, path, body);
-  let data = null;
+  let data: any = null;
   try { data = r.body ? JSON.parse(r.body) : null; } catch { /* not JSON */ }
   if (r.status >= 400) {
     throw Object.assign(new Error(data?.message || `Il client ha risposto ${r.status}`), { status: r.status });
@@ -25,9 +28,11 @@ export async function lcu(method, path, body) {
 }
 
 // Images served by the client itself (splash art, profile icons): never downloaded or bundled.
-export const asset = (path) => (tauri ? 'http://lcu.localhost' : '/lcu') + path;
+export const asset = (path: string) => (tauri ? 'http://lcu.localhost' : '/lcu') + path;
 
-export function onEvent(cb) {
-  if (tauri) return listen('lcu', (e) => cb(e.payload));
+export type LcuEvent = { uri: string; eventType: string; data: any };
+
+export function onEvent(cb: (e: LcuEvent) => void) {
+  if (tauri) return listen<LcuEvent>('lcu', (e) => cb(e.payload));
   new EventSource('/events').onmessage = (m) => cb(JSON.parse(m.data));
 }

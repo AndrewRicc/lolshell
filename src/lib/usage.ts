@@ -2,7 +2,10 @@
 
 const RIFT = new Set([400, 420, 440]); // the queues where a lane is actually chosen
 
-function position(t) {
+type Timeline = { lane: string; role: string };
+export type Game = { queueId: number; participants?: { timeline?: Timeline }[] };
+
+function position(t?: Timeline) {
   if (!t) return null;
   if (t.lane === 'JUNGLE') return 'JUNGLE';
   if (/SUPPORT/.test(t.role)) return 'UTILITY';
@@ -12,11 +15,10 @@ function position(t) {
   return null;
 }
 
-const ranked = (counts) => Object.entries(counts).sort((a, b) => b[1] - a[1]).map((e) => e[0]);
+const ranked = (counts: Record<string, number>) => Object.entries(counts).sort((a, b) => b[1] - a[1]).map((e) => e[0]);
 
-/** @returns {{ usage: Record<number, number>, games: number, roles: [string, string] | null }} */
-export function summarize(games) {
-  const usage = {}, pos = {};
+export function summarize(games: Game[]): { usage: Record<number, number>; games: number; roles: [string, string] | null } {
+  const usage: Record<number, number> = {}, pos: Record<string, number> = {};
   for (const g of games) {
     usage[g.queueId] = (usage[g.queueId] ?? 0) + 1;
     const p = RIFT.has(g.queueId) && position(g.participants?.[0]?.timeline);

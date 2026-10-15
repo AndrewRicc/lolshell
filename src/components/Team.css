@@ -1,0 +1,16 @@
+.team { min-height: 0; padding: 14px; display: flex; flex-direction: column; }
+.team .head { min-height: 28px; align-items: center; }
+.team .bans { display: flex; gap: 3px; }
+.team .bans img { border-radius: 6px; filter: grayscale(1) brightness(0.7); }
+.team ul { display: grid; gap: 6px; }
+.team .seat { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 6px 8px; background: var(--fill); border-radius: 14px; transition: background 0.2s, box-shadow 0.2s; }
+.team .seat img { border-radius: 10px; transition: opacity 0.2s, filter 0.2s; }
+.team .seat.intent img { opacity: 0.45; filter: grayscale(0.6); }
+.team .seat.me b { color: var(--gold); }
+.team .seat.acting { background: var(--fill-on); box-shadow: inset 0 0 0 1.5px var(--teal); }
+.team .seat.acting small { color: var(--teal); }
+.team.enemy .seat.acting { box-shadow: inset 0 0 0 1.5px var(--red); }
+.team.enemy .seat.acting small { color: var(--red); }
+.team .seat .icon { width: 26px; height: 26px; }
+.team .seat .icon svg { width: 14px; height: 14px; }
+.team .seat small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

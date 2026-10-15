@@ -1,0 +1,9 @@
+/* Champion select: your team, the champions on offer, the other team */
+.select { display: grid; grid-template-columns: 200px minmax(0, 1fr) 200px; gap: 12px; }
+.select.solo { grid-template-columns: 200px minmax(0, 1fr); }
+.select .center { min-height: 0; padding: 14px; display: flex; flex-direction: column; }
+.select .center > .head { min-height: 28px; align-items: center; }
+.select .bench { flex: none; margin-top: 8px; }
+.select .my-champ { display: grid; justify-items: center; gap: 10px; padding: 12px 0 18px; font: 400 20px/1.2 var(--display); letter-spacing: 0.06em; text-transform: uppercase; }
+.select .my-champ img { border-radius: 22px; box-shadow: var(--lift); }
+.select .loadout { display: flex; align-items: center; gap: 10px; min-width: 0; }

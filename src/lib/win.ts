@@ -1,9 +1,9 @@
 // Window behaviour of the desktop app. Every call is a no-op in a plain browser.
-import { getCurrentWindow } from '@tauri-apps/api/window';
+import { getCurrentWindow, type Window } from '@tauri-apps/api/window';
 
 const tauri = '__TAURI_INTERNALS__' in window;
 
-const safe = (fn) => async () => {
+const safe = (fn: (w: Window) => Promise<unknown>) => async () => {
   if (!tauri) return;
   try { await fn(getCurrentWindow()); } catch (e) { console.warn(e); }
 };

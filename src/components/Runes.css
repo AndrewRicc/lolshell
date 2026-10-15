@@ -1,0 +1,10 @@
+.runes { min-width: 0; max-width: 150px; }
+.runes img, .rune-menu img { width: 18px; height: 18px; flex: none; }
+.runes span, .rune-menu span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.role-menu.rune-menu { left: auto; right: anchor(right); flex-direction: column; width: 220px; max-height: 320px; overflow-y: auto; }
+.rune-menu button { display: flex; align-items: center; justify-items: start; gap: 6px; width: 100%; padding: 8px 12px; font-size: 13px; color: var(--cream); text-align: left; }
+.rune-menu button[aria-checked="true"] { color: var(--teal); }
+/* Text colour from the rule above, like the pages. */
+.rune-menu .edit { background: none; border-radius: 14px; }
+.rune-menu .edit:hover { background: var(--fill); }
+.rune-menu .edit svg { width: 18px; height: 18px; }

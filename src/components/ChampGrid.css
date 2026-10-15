@@ -1,0 +1,2 @@
+/* :not([type]) only to outweigh the global text-field rule, which lets fields grow. */
+input:not([type])[aria-label="Cerca un campione"] { flex: none; margin-bottom: 10px; }
