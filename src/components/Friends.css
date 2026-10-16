@@ -14,7 +14,7 @@ aside .hint:not(.sent) { padding: 2px 18px 16px; }
 aside .friends .people { max-height: min(56vh, 480px); overflow-y: auto; padding: 2px 18px 16px; }
 aside .count { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 aside .people { display: grid; gap: 10px; }
-aside .people li { display: flex; align-items: center; gap: 10px; min-height: 36px; }
+aside .people li { border-radius: 12px; display: flex; align-items: center; gap: 10px; min-height: 36px; }
 aside .people img { border-radius: 50%; }
 aside .chat-with { grid-template-columns: 32px minmax(0, 1fr); align-items: center; gap: 10px; padding: 2px; background: none; border-radius: 12px; text-align: left; }
 aside .chat-with span { display: grid; min-width: 0; }

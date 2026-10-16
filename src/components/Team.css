@@ -1,7 +1,10 @@
 .team { min-height: 0; padding: 14px; display: flex; flex-direction: column; }
 .team .head { min-height: 28px; align-items: center; }
 .team .bans { display: flex; gap: 3px; }
-.team .bans img { border-radius: 6px; filter: grayscale(1) brightness(0.7); }
+.team .bans img { display: block; border-radius: 6px; filter: grayscale(1) brightness(0.7); }
+/* Struck through; Select.tsx draws the stroke in when the ban lands. */
+.team .bans .ban { position: relative; display: block; }
+.team .bans .slash { position: absolute; top: 50%; left: 50%; width: 30px; height: 2px; margin: -1px 0 0 -15px; background: var(--red); border-radius: 1px; rotate: -45deg; pointer-events: none; }
 .team ul { display: grid; gap: 6px; }
 .team .seat { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 6px 8px; background: var(--fill); border-radius: 14px; transition: background 0.2s, box-shadow 0.2s; }
 .team .seat img { border-radius: 10px; transition: opacity 0.2s, filter 0.2s; }

@@ -1,7 +1,10 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
+import { animate } from 'animejs';
 import { useSnapshot } from 'valtio';
 import { invite, answerInvite, addFriend, answerRequest, openChat, type Friend } from '../lib/client.ts';
 import { ui, view, icon, unread, useClient } from '../lib/view.ts';
+import { useOnChange, still } from '../lib/motion.ts';
+import Badge from './Badge.tsx';
 import './Friends.css';
 
 // Order here is the order of the friends list.
@@ -43,8 +46,19 @@ export default function Friends() {
   const invited = (id: number) => (c.lobby?.invitations ?? []).some((i) => i.toSummonerId === id && i.state === 'Pending');
   const queueLabel = (id?: number) => c.queues.find((x) => x.id === id)?.label ?? 'una partita';
 
+  // A friend who turns available glows teal; with the drawer shut, the online counter pops instead.
+  const root = useRef<HTMLElement>(null);
+  useOnChange(c.friends.map((f) => `${f.puuid}=${f.availability}`).join(), (prev, next) => {
+    const was = new Map(prev.split(',').map((x) => x.split('=') as [string, string]));
+    const fresh = c.friends.filter((f) => f.availability === 'chat' && was.has(f.puuid) && was.get(f.puuid) !== 'chat'); // not on first load, not new friends
+    if (!fresh.length || still()) return;
+    const rows = [...root.current!.querySelectorAll<HTMLElement>('.people li[data-id]')].filter((li) => fresh.some((f) => f.puuid === li.dataset.id));
+    animate(rows, { backgroundColor: ['rgba(25, 214, 199, 0.35)', 'rgba(25, 214, 199, 0)'], duration: 500, ease: 'outQuad', onComplete: (a) => { a.revert(); } });
+    if (!friendsOpen) animate(root.current!.querySelector('.pill .count')!, { scale: [1.3, 1], duration: 300, ease: 'outBack' });
+  });
+
   return (
-    <aside>
+    <aside ref={root}>
       {!!pendingInvites.length && stage === 'lobby' && (
         <section aria-labelledby="h-invites">
           <div className="head"><h2 id="h-invites">Inviti</h2></div>
@@ -95,12 +109,12 @@ export default function Friends() {
           {friends.length ? (
             <ul className="people">
               {friends.map((f) => (
-                <li key={f.puuid} className={onLeague(f) ? undefined : 'away'} data-availability={f.availability}>
+                <li key={f.puuid} data-id={f.puuid} className={onLeague(f) ? undefined : 'away'} data-availability={f.availability}>
                   <button className="person chat-with" aria-label={`Apri la chat con ${f.gameName || f.name}`} onClick={() => chatWith(f)}>
                     <img src={icon(f.icon)} alt="" width="32" height="32" loading="lazy" />
                     <span><b>{f.gameName || f.name}</b><small>{AVAILABILITY[f.availability] ?? 'Offline'}</small></span>
                   </button>
-                  {!!unread(f.id) && <span className="badge" aria-label={`${unread(f.id)} messaggi non letti`}>{unread(f.id)}</span>}
+                  <Badge n={+unread(f.id)} label={`${unread(f.id)} messaggi non letti`} />
                   {inParty(f.summonerId) ? (
                     <small className="tag">Nel party</small>
                   ) : invited(f.summonerId) ? (

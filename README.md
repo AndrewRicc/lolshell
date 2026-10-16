@@ -24,6 +24,8 @@ automatically for everything lolshell does not cover yet.
   pages); in ARAM the bench, rerolls and champion swaps with teammates.
 - **Friends**: the full list with presence, invites to your party, friend requests in and out.
 - **Chat**: party chat and private conversations, with unread counts.
+- **Motion**: short animations (pick and ban moments, match found, queue, panels) built on
+  [anime.js](https://animejs.com); with reduced motion requested in the system they are all off.
 - **Window**: fixed 1280x720, frameless, with a tray icon.
 
 Skins, post-game, store, loot and TFT are not implemented: Riot's interface covers them.
@@ -78,10 +80,12 @@ client's own description of it (patch 16.20), saved from the `/help` endpoint.
 | Path | What it is |
 | --- | --- |
 | `src/App.tsx` | The frame: which parts are on screen at each stage (styles in `src/shell.css`) |
-| `src/components/` | One `.tsx` per part, with its own `.css` whose rules all start from the part's root: `Account`, `Status`, `Party`, `ModePicker`, `Friends`, `Chat`, `Bar`, and for champion select `Select`, `Team`, `ChampGrid`, `Spells` |
+| `src/components/` | One `.tsx` per part, with its own `.css` whose rules all start from the part's root: `Account`, `Status`, `Party`, `ModePicker`, `Friends`, `Chat`, `Bar`, and for champion select `Select`, `Team`, `ChampGrid`, `Spells`; `Backdrop` is the crossfading background and `Badge` the unread count |
 | `src/app.css` | Design tokens, element defaults and the few styles several parts share; the rest lives in each component |
 | `src/lib/client.ts` | Live client state and every action the interface can take; the state is a [valtio](https://valtio.dev) proxy, mutated in place by client events and read by components through a hook |
 | `src/lib/view.ts` | What several parts need to know, worked out once (stage, party, seats) |
+| `src/lib/motion.ts` | The animation helpers on top of anime.js; each one does nothing when reduced motion is on |
+| `src/lib/moments.ts` | Spots picks, bans and lock-ins by comparing two champion select sessions, so the interface can animate them |
 | `src/lib/lcu.ts` | Transport: Tauri inside the app, `bridge.mjs` in a browser |
 | `src/lib/usage.ts` | Turns match history into proposed queue and roles |
 | `src/lib/win.ts` | Window behaviour (tray, minimize, focus) and the match-found sound |

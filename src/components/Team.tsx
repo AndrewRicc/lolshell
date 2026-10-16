@@ -18,7 +18,7 @@ export default function Team({ title, players, bans, enemy = false }: Props) {
       <div className="head">
         <h2>{title}</h2>
         <span className="bans" aria-label="Campioni bannati">
-          {bans.map((id, i) => <img key={i} src={champIcon(id)} alt={champName(id)} title={champName(id)} width="22" height="22" />)}
+          {bans.map((id, i) => <span key={i} className="ban" data-id={id}><img src={champIcon(id)} alt={champName(id)} title={champName(id)} width="22" height="22" /><i className="slash"></i></span>)}
         </span>
       </div>
       <ul>
@@ -27,7 +27,7 @@ export default function Team({ title, players, bans, enemy = false }: Props) {
           const id = p.championId || p.championPickIntent;
           const t = trade(p);
           return (
-            <li key={p.cellId} className={'seat' + (a ? ' acting' : '') + (p.cellId === s.localPlayerCellId ? ' me' : '') + (!p.championId ? ' intent' : '')}>
+            <li key={p.cellId} data-cell={p.cellId} className={'seat' + (a ? ' acting' : '') + (p.cellId === s.localPlayerCellId ? ' me' : '') + (!p.championId ? ' intent' : '')}>
               <img src={champIcon(id)} alt="" width="40" height="40" />
               <span className="person">
                 <b>{name(p, i)}</b>

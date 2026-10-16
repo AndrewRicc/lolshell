@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { lobbyChat, openChat, closeChat, closeTab, send, type Conversation, type Message } from '../lib/client.ts';
+import { animate } from 'animejs';
 import { unread, useClient } from '../lib/view.ts';
+import { useOnChange, still } from '../lib/motion.ts';
+import Badge from './Badge.tsx';
 import './Chat.css';
 
 const SYSTEM: Record<string, string> = { joined_room: 'è nel party', left_room: 'ha lasciato il party' };
@@ -24,6 +27,13 @@ export default function Chat() {
     if (log.current) log.current.scrollTop = log.current.scrollHeight;
   }, [messages.length]);
 
+  // A new message in the open chat slides up from below (opening or switching chats does not).
+  useOnChange(`${c.chatOpen}|${messages.length}`, (prev, next) => {
+    const [pc, pn] = prev.split('|'), [nc, nn] = next.split('|');
+    if (pc !== nc || +pn === 0 || +nn <= +pn || still()) return; // an empty chat filling up is the history loading
+    animate([...log.current!.children].slice(-(+nn - +pn)), { y: [12, 0], opacity: [0, 1], duration: 250, ease: 'outQuad', onComplete: (a) => { a.revert(); } });
+  });
+
   function say(e: FormEvent) {
     e.preventDefault();
     const body = draft.trim();
@@ -39,7 +49,7 @@ export default function Chat() {
           {tabs.map((v) => (
             <span key={v.id} className={v.id === c.chatOpen ? 'tab on' : 'tab'}>
               <button role="tab" aria-selected={v.id === c.chatOpen} onClick={() => openChat(v.id)}>
-                {chatName(v)}{!!unread(v.id) && <span className="badge">{unread(v.id)}</span>}
+                <span className="tab-name">{chatName(v)}</span><Badge n={+unread(v.id)} />
               </button>
               <button className="tab-close" aria-label={`Chiudi la chat ${chatName(v)}`} onClick={() => closeTab(v.id)}>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" /></svg>

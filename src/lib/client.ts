@@ -1,5 +1,6 @@
 // Live state of the League client plus the actions the interface can take.
 // The client is the source of truth: everything here mirrors what it reports.
+import { emitMoments, moments } from './moments.ts';
 import { proxy, subscribe } from 'valtio';
 import { lcu, onEvent, type LcuEvent } from './lcu.ts';
 import { summarize } from './usage.ts';
@@ -42,8 +43,9 @@ export interface Session {
   trades: { id: number; cellId: number; state: string }[]; chatDetails?: { multiUserChatId?: string };
   benchEnabled: boolean; benchChampions: { championId: number }[]; allowRerolling: boolean; rerollsRemaining: number;
   allowDuplicatePicks: boolean; isCustomGame?: boolean; showQuitButton?: boolean;
+  allowSubsetChampionPicks?: boolean; // ARAM: Mayhem and the like: pick among a few champions dealt to you
 }
-export interface Champion { id: number; name: string }
+export interface Champion { id: number; name: string; alias: string }
 export interface Spell { id: number; name: string; iconPath: string; gameModes?: string[] }
 export interface RunePage {
   id: number; name: string; current: boolean; isValid: boolean; isEditable?: boolean;
@@ -97,7 +99,8 @@ export const c = proxy({
   select: null as Session | null, // the champion select session, while there is one
   pickable: [] as number[], // champion ids the client lets you pick, and ban, right now
   bannable: [] as number[],
-  champions: [] as Champion[], // every champion: id, name
+  subset: [] as number[], // the champions dealt to you when the mode deals a few (allowSubsetChampionPicks)
+  champions: [] as Champion[], // every champion: id, name, alias (its art folder)
   spells: [] as Spell[],
   runes: [] as RunePage[], // the saved rune pages; one of them is the current one
   runeStyles: [] as RuneStyle[], // the five paths, each with its rows of rune ids
@@ -162,16 +165,26 @@ async function loadGameData() {
 }
 
 const SELECT = '/lol-champ-select/v1/session';
+const SUBSET = '/lol-lobby-team-builder/champ-select/v1/subset-champion-list';
 function setSelect(session: Session | null) {
   const fresh = session && !c.select;
+  const before = c.select;
   c.select = session ?? null;
-  if (!session) return;
+  if (!session) return emitMoments(moments(before, session));
   learnNames([...session.myTeam, ...session.theirTeam].map((p) => p.puuid));
-  if (!fresh) return;
-  opt('/lol-champ-select/v1/pickable-champion-ids').then((ids) => { c.pickable = ids ?? []; });
-  opt('/lol-champ-select/v1/bannable-champion-ids').then((ids) => { c.bannable = ids ?? []; });
-  loadRunes();
+  if (fresh) {
+    opt('/lol-champ-select/v1/pickable-champion-ids').then((ids) => { c.pickable = ids ?? []; });
+    c.subset = [];
+    if (session.allowSubsetChampionPicks) opt(SUBSET).then((ids) => { c.subset = ids ?? []; });
+    opt('/lol-champ-select/v1/bannable-champion-ids').then((ids) => { c.bannable = ids ?? []; });
+    loadRunes();
+  }
+  emitMoments(moments(before, session));
 }
+
+// shortcut: Arena reports the whole lobby (18) as its size and names the team size only in its title ("Arena 3x6"); read it
+// from there until the client exposes it. A created lobby reports the real size anyway (gameConfig.maxLobbySize).
+const partySize = (q: RawQueue) => (q.gameMode === 'CHERRY' && Number(/(\d+)x\d+/.exec(q.description)?.[1])) || q.maximumParticipantListSize;
 
 async function loadDefaults() {
   const [queues, maps, history, profile] = await Promise.all([
@@ -200,7 +213,7 @@ async function loadDefaults() {
         },
         roles: q.showPositionSelector && !custom,
         // A custom queue's own limit also counts spectators; the two teams hold ten.
-        max: custom ? 10 : q.maximumParticipantListSize, count: s.usage[q.id] ?? 0,
+        max: custom ? 10 : partySize(q), count: s.usage[q.id] ?? 0,
       };
     })
     .sort((a, b) => Number(a.custom) - Number(b.custom) || b.count - a.count || a.label.localeCompare(b.label));
@@ -292,6 +305,8 @@ function handle({ uri, eventType, data }: LcuEvent) {
     autoAccept();
   } else if (uri === SELECT) {
     setSelect(gone ? null : data);
+  } else if (uri === SUBSET) {
+    c.subset = gone ? [] : data ?? [];
   } else if (uri === '/lol-champ-select/v1/pickable-champion-ids') {
     c.pickable = data ?? [];
   } else if (uri === '/lol-champ-select/v1/bannable-champion-ids') {

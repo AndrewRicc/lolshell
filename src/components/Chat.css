@@ -7,7 +7,8 @@
 .chat .tab { flex: none; display: flex; align-items: center; height: 28px; border-radius: 999px; color: var(--muted); }
 .chat .tab:hover { background: var(--fill); }
 .chat .tab.on { background: var(--fill-on); color: var(--cream); }
-.chat [role="tab"] { display: flex; align-items: center; gap: 6px; max-width: 120px; height: 100%; padding: 0 4px 0 12px; background: none; border-radius: 999px 0 0 999px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat [role="tab"] { display: flex; align-items: center; gap: 6px; max-width: 120px; height: 100%; padding: 0 4px 0 12px; background: none; border-radius: 999px 0 0 999px; font-size: 13px; white-space: nowrap; }
+.chat .tab-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .chat .tab-close { display: grid; place-items: center; width: 20px; height: 100%; margin-right: 4px; padding: 0; background: none; border-radius: 0 999px 999px 0; opacity: 0.7; }
 .chat .tab-close svg { width: 12px; height: 12px; stroke-width: 2; }
 .chat .tab-close:hover { opacity: 1; }

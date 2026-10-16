@@ -1,6 +1,10 @@
+import { useEffect, useRef } from 'react';
+import { animate, stagger, svg } from 'animejs';
 import { ROLES, roleName, pickRoles, leave, kick, promote, lobbyChat, openChat, type Member } from '../lib/client.ts';
 import RoleGlyph from './RoleGlyph.tsx';
+import Badge from './Badge.tsx';
 import { ui, view, icon, unread, nameOf, useClient } from '../lib/view.ts';
+import { still, useMotion, useOnChange } from '../lib/motion.ts';
 import './Party.css';
 
 export default function Party() {
@@ -17,21 +21,63 @@ export default function Party() {
   const teamOf = (m: Member) => c.lobby?.gameConfig?.customTeam200?.some((x) => x.puuid === m.puuid) ? 'Squadra 2'
     : c.lobby?.gameConfig?.customTeam100?.some((x) => x.puuid === m.puuid) ? 'Squadra 1' : '';
 
+  // Search starts: a wave runs through the slots.
+  const root = useRef<HTMLElement>(null);
+  useMotion(root, [stage === 'queue'], () => {
+    if (stage === 'queue') animate('.member', { y: [0, -6, 0], duration: 500, delay: stagger(60), ease: 'inOutSine' });
+  });
+
+  // A newly picked role draws itself in the button, then fills with a small pop.
+  useOnChange(myRoles.join(), (prev, next) => {
+    if (still() || !root.current) return;
+    const was = prev.split(',');
+    next.split(',').forEach((id, n) => {
+      if (id === was[n]) return;
+      const g = root.current!.querySelectorAll('button.role')[n]?.querySelector('.glyph');
+      const paths = [...(g?.querySelectorAll('path') ?? [])].filter((p) => p.getAttribute('d'));
+      if (!g || !paths.length) return;
+      paths.forEach((p) => p.setAttribute('style', 'stroke: currentColor; stroke-width: 1; fill-opacity: 0'));
+      const anims = [
+        animate(paths, { fillOpacity: [0, 1], duration: 200, delay: 500, ease: 'linear' }),
+        animate(svg.createDrawable(paths), { draw: ['0 0', '0 1'], duration: 500, ease: 'inOutSine' }),
+        animate(g, { scale: [1, 1.15, 1], duration: 200, delay: 500, ease: 'outQuad' }),
+      ];
+      // Back to the plain filled glyph: no stroke, dash or transform left behind.
+      anims[0].then(() => {
+        anims.forEach((a) => a.revert());
+        paths.forEach((p) => ['style', 'pathLength', 'stroke-dasharray', 'stroke-dashoffset', 'draw'].forEach((a) => p.removeAttribute(a)));
+        g.removeAttribute('style');
+      });
+    });
+  });
+
+  // Role menu: the options step in as it opens ('toggle' does not bubble, so catch it on the way down).
+  useEffect(() => {
+    const el = root.current!;
+    const open = (e: Event) => {
+      if ((e as ToggleEvent).newState !== 'open' || still()) return;
+      const a = animate((e.target as Element).querySelectorAll('button'), { y: [6, 0], opacity: [0, 1], delay: stagger(30), duration: 200, ease: 'outQuad' });
+      a.then(() => a.revert());
+    };
+    el.addEventListener('toggle', open, true);
+    return () => el.removeEventListener('toggle', open, true);
+  }, []);
+
   return (
-    <section aria-labelledby="h-party">
+    <section ref={root} aria-labelledby="h-party">
       <div className="head">
         <h2 id="h-party">Party</h2>
         <span className="head-actions">
           {room && c.chatOpen !== room && (
             <button className="chip" onClick={() => openChat(room)}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14v10h-8l-4 3v-3H5z" /></svg>
-              Chat del party{!!unread(room) && <span className="badge" aria-label={`${unread(room)} messaggi non letti`}>{unread(room)}</span>}
+              Chat del party<Badge n={+unread(room)} label={`${unread(room)} messaggi non letti`} />
             </button>
           )}
           {c.lobby && stage === 'lobby' && <button className="link" onClick={leave} disabled={c.busy}>Esci dal party</button>}
         </span>
       </div>
-      <ul className={size > 5 ? 'party big' : 'party'}>
+      <ul className={size > 5 ? 'party big' : 'party'} style={{ '--cols': Math.min(size, 5) } as React.CSSProperties}>
         {members.map((m) => {
           const self = m.summonerId === c.me?.summonerId;
           return (

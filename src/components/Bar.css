@@ -1,11 +1,13 @@
 /* Controls */
-.bar { padding: 8px 348px 20px 32px; }
+.bar { position: relative; padding: 8px 348px 20px 32px; }
 .bar .actions { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
-.bar .primary { min-width: 220px; height: 52px; padding: 0 32px; background: var(--teal); color: #01221f; border-radius: 999px; box-shadow: var(--lift); font: 400 17px/1 var(--display); letter-spacing: 0.1em; text-transform: uppercase; transition: background 0.15s, transform 0.15s var(--ease); }
+.bar .primary { min-width: 220px; height: 52px; padding: 0 32px; background: var(--teal); color: #01221f; border-radius: 999px; box-shadow: var(--lift); font: 400 17px/1 var(--display); letter-spacing: 0.1em; text-transform: uppercase; transition: background 0.15s; }
 .bar .primary:hover:not(:disabled) { background: #5cebdf; }
 .bar .primary:active:not(:disabled) { transform: translateY(1px); }
 .bar .primary:disabled { background: var(--fill-hi); color: var(--muted); box-shadow: none; }
+/* anime.js drives the primary button's scale and opacity (ready pulse, queue entrance, click squash): no CSS transform transition. */
 .bar .auto { display: flex; align-items: center; gap: 10px; cursor: pointer; }
 .bar .auto span { display: grid; }
 .bar .auto b { font-weight: 600; }
 .bar .auto.on small { color: var(--teal); }
+.bar .ripple { position: absolute; width: 80px; height: 80px; margin: -40px 0 0 -40px; border: 2px solid var(--teal); border-radius: 50%; opacity: 0; pointer-events: none; }

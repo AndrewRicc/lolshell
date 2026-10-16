@@ -7,3 +7,12 @@
 .select .my-champ { display: grid; justify-items: center; gap: 10px; padding: 12px 0 18px; font: 400 20px/1.2 var(--display); letter-spacing: 0.06em; text-transform: uppercase; }
 .select .my-champ img { border-radius: 22px; box-shadow: var(--lift); }
 .select .loadout { display: flex; align-items: center; gap: 10px; min-width: 0; }
+/* Moments, driven from Select.tsx: the locked icon flying to your seat, your champion's name spelled in. */
+.select .ghost { position: fixed; z-index: 10; border-radius: 10px; transform-origin: 0 0; pointer-events: none; }
+.select .my-champ b [data-char] { display: inline-block; }
+/* Ban phase: the centre pane's edge breathes red for as long as it lasts. */
+[data-ban] .select .center { animation: ban-edge 1.6s ease-in-out infinite; }
+@keyframes ban-edge {
+  0%, 100% { box-shadow: var(--edge), var(--lift), inset 0 0 0 1.5px rgb(255 90 104 / 0.15); }
+  50% { box-shadow: var(--edge), var(--lift), inset 0 0 0 1.5px rgb(255 90 104 / 0.8); }
+}

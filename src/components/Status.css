@@ -1,16 +1,21 @@
 /* Status: a small lit label, then the one thing that matters at this stage, set large on the picture */
-.status { padding: 30px 300px 14px 32px; text-shadow: 0 2px 18px rgb(1 10 19 / 0.7); }
+.status { position: relative; padding: 30px 300px 14px 32px; text-shadow: 0 2px 18px rgb(1 10 19 / 0.7); }
 .status h1 { font-size: 36px; }
 .status p { margin-top: 6px; color: var(--muted); }
 .status .eyebrow { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; font: 400 12px/1.5 var(--display); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); }
 .status .eyebrow::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 0 4px color-mix(in srgb, var(--teal) 18%, transparent), 0 0 14px var(--teal); animation: pulse 2.4s ease-in-out infinite; }
 [data-stage="off"] .status .eyebrow::before { background: var(--red); box-shadow: 0 0 0 4px rgb(255 143 152 / 0.18); animation: none; }
-[data-stage="queue"] .status .eyebrow::before { animation-duration: 1s; }
+[data-stage="queue"] .status .eyebrow::before { animation: pulse 1s ease-in-out infinite, wave 2.4s ease-out infinite; }
+@keyframes wave { 0% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--teal) 45%, transparent), 0 0 14px var(--teal); } 100% { box-shadow: 0 0 0 22px transparent, 0 0 14px var(--teal); } }
 @keyframes pulse { 50% { opacity: 0.45; } }
 .status .seats { display: flex; align-items: center; gap: 10px; }
 .status .pips { display: flex; gap: 4px; }
 .status .pips i { width: 14px; height: 4px; border-radius: 2px; background: var(--fill-on); }
 .status .pips .on { background: var(--teal); }
 .status .clock { font: 300 44px/1 var(--ui); font-variant-numeric: tabular-nums; letter-spacing: 0; color: var(--teal); }
-[data-stage="ready"] .status h1 { color: var(--teal); animation: found 0.6s var(--ease); }
-@keyframes found { from { letter-spacing: 0.3em; filter: blur(6px); } }
+/* Hugs the text, so the ring can centre on the title; one line, so the split letters never wrap mid-word. */
+[data-stage="ready"] .status h1 { width: fit-content; white-space: nowrap; color: var(--teal); }
+/* Match found: the ring and the title's letters, driven from Status.tsx. */
+.status h1 [data-char] { display: inline-block; }
+.status .ring { position: absolute; width: 160px; height: 160px; margin: -80px 0 0 -80px; border: 2px solid var(--gold); border-radius: 50%; box-shadow: 0 0 24px var(--gold); opacity: 0; pointer-events: none; }
+.status .clock span { display: inline-block; }

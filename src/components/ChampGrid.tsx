@@ -15,7 +15,8 @@ export default function ChampGrid({ ids, taken, selected, onpick, label }: Props
   const list = roster.filter((x) => x.name.toLowerCase().includes(query.trim().toLowerCase()));
 
   return <>
-    <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cerca un campione" aria-label="Cerca un campione" autoComplete="off" spellCheck="false" />
+    {/* A handful of dealt champions needs no search. */}
+    {roster.length > 12 && <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cerca un campione" aria-label="Cerca un campione" autoComplete="off" spellCheck="false" />}
     <div className="champs" role="radiogroup" aria-label={label}>
       {list.length ? list.map((x) => (
         <button key={x.id} role="radio" aria-checked={selected === x.id} disabled={c.busy || taken.has(x.id)} title={x.name} onClick={() => onpick(x.id)}>

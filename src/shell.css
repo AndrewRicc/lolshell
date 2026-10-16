@@ -1,7 +1,6 @@
 /* App.tsx (not App.css: on Windows that name is app.css, the shared sheet) */
-/* Shell: the splash art is the room, everything else is a pane of glass in front of it */
+/* Shell: the splash art (Backdrop) is the room, everything else is a pane of glass in front of it */
 .app { position: relative; height: 100%; isolation: isolate; }
-.app .backdrop { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; object-fit: cover; object-position: 60% 20%; }
 /* Darker at the top and bottom, where text sits directly on the picture. */
 /* ::after, not ::before: among the layers behind the content, the later one paints on top of the picture. */
 .app::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgb(1 10 19 / 0.8) 0, rgb(1 10 19 / 0.4) 240px, rgb(1 10 19 / 0.4) calc(100% - 200px), rgb(1 10 19 / 0.82) 100%); }
@@ -20,8 +19,15 @@
 .app .work > .select { flex: 1; min-height: 0; }
 .app .work > .notice { margin: 0; padding: 14px 18px; }
 
-.app .toast { position: absolute; left: 32px; bottom: 92px; z-index: 5; max-width: 420px; padding: 12px 18px; background: #3a1016; border-radius: 14px; box-shadow: var(--lift); color: #ffd9dc; }
+.app .toast { position: absolute; left: 32px; bottom: 92px; z-index: 5; max-width: 420px; padding: 12px 18px; background: #3a1016; border-radius: 14px; box-shadow: var(--lift); color: #ffd9dc; animation: toast-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); transition: opacity 0.3s, visibility 0s 0.3s; }
+.app .toast.gone { opacity: 0; visibility: hidden; pointer-events: none; }
+@keyframes toast-in { from { opacity: 0; transform: translateX(-32px); } }
+
+/* Gold motes: above the picture, below every panel (z-index -1, like the veil). Animated from App.tsx. */
+.app .motes { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.app .mote { position: absolute; bottom: -8px; width: 4px; height: 4px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 8px var(--gold); opacity: 0; }
 
 /* Match found: the one moment the screen moves */
 .app .timer { height: 6px; border-radius: 3px; background: var(--fill-on); overflow: hidden; }
 .app .timer span { display: block; height: 100%; background: var(--teal); transform-origin: left; transition: transform 1s linear; }
+.app .timer.late span { background: var(--red); }

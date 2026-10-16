@@ -4,8 +4,9 @@ import { proxy, snapshot, subscribe } from 'valtio';
 import { c, queue, roles, type Member } from './client.ts';
 import { asset } from './lcu.ts';
 
-// Interface state shared between components: the party's empty seats open the friends list.
-export const ui = proxy({ friendsOpen: false });
+// Interface state shared between components: the party's empty seats open the friends list; a scene
+// (an LCU image path) stands in for the profile splash behind everything.
+export const ui = proxy({ friendsOpen: false, scene: null as string | null });
 
 // Any change to the client's state re-renders the component. Not useSnapshot: it tracks only what
 // render reads off the snapshot, and the helpers here and in client.ts read `c` itself.
@@ -42,5 +43,11 @@ export const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s 
 export const icon = (id?: number) => asset(`/lol-game-data/assets/v1/profile-icons/${id}.jpg`);
 export const champIcon = (id?: number) => asset(`/lol-game-data/assets/v1/champion-icons/${id || -1}.png`);
 export const champName = (id?: number) => c.champions.find((x) => x.id === id)?.name ?? '';
+// An LCU path, for ui.scene. The splash routes by id answer 400 here, so the path is built from the art folder.
+// shortcut: the file name follows the alias for every champion but Xin Zhao and Hwei (the backdrop then just stays); the exact path needs champions/{id}.json, one more request per pick.
+export const champSplash = (id: number) => {
+  const a = c.champions.find((x) => x.id === id)?.alias;
+  return a ? `/lol-game-data/assets/ASSETS/Characters/${a}/Skins/Base/Images/${a.toLowerCase()}_splash_uncentered_0.jpg` : null;
+};
 export const unread = (id: string) => id !== c.chatOpen && (c.conversations.find((v) => v.id === id)?.unreadMessageCount ?? 0);
 export const nameOf = (m: Member) => m.summonerId === c.me?.summonerId ? c.me.gameName : c.names[m.puuid!] ?? m.summonerName ?? '';
