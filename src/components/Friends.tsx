@@ -110,7 +110,7 @@ export default function Friends() {
             <ul className="people">
               {friends.map((f) => (
                 <li key={f.puuid} data-id={f.puuid} className={onLeague(f) ? undefined : 'away'} data-availability={f.availability}>
-                  <button className="person chat-with" aria-label={`Apri la chat con ${f.gameName || f.name}`} onClick={() => chatWith(f)}>
+                  <button className="person chat-with" data-opens-chat aria-label={`Apri la chat con ${f.gameName || f.name}`} onClick={() => chatWith(f)}>
                     <img src={icon(f.icon)} alt="" width="32" height="32" loading="lazy" />
                     <span><b>{f.gameName || f.name}</b><small>{AVAILABILITY[f.availability] ?? 'Offline'}</small></span>
                   </button>

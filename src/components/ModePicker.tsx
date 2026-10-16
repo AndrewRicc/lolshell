@@ -55,9 +55,11 @@ export default function ModePicker() {
     else chooseQueue(card.items.find((i) => i.max >= members.length) ?? card.items[0]);
   }
 
-  function chooseQueue(item: Queue) {
+  // In a lobby the switch waits for the client: keep the chosen card open until it answers, or the cards swing back to the old queue first.
+  async function chooseQueue(item: Queue) {
+    setPeek(item.mode.key);
+    await pickQueue(item.id);
     setPeek(null);
-    pickQueue(item.id);
   }
 
   return (

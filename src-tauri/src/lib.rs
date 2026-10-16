@@ -43,14 +43,31 @@ fn lockfile() -> Option<Lcu> {
     })
 }
 
-// shortcut: certificate check is off because the client uses a self-signed cert and every
-// request here goes to 127.0.0.1; pin Riot's root cert before this client calls anything else.
+/// The only root trusted for the client's certificate.
+const RIOT_ROOT: &[u8] = include_bytes!("../riotgames.pem");
+
 fn http_client() -> reqwest::Client {
+    http_client_with(RIOT_ROOT)
+}
+
+// Hostname check off: the client's cert has no SAN, and the host is always 127.0.0.1.
+fn http_client_with(root: &[u8]) -> reqwest::Client {
     reqwest::Client::builder()
-        .danger_accept_invalid_certs(true)
+        .tls_built_in_root_certs(false)
+        .add_root_certificate(reqwest::Certificate::from_pem(root).expect("root cert"))
+        .danger_accept_invalid_hostnames(true)
         .pool_max_idle_per_host(CONNECTIONS)
         .build()
         .expect("http client")
+}
+
+fn tls_connector(root: &[u8]) -> Option<native_tls::TlsConnector> {
+    native_tls::TlsConnector::builder()
+        .disable_built_in_roots(true)
+        .add_root_certificate(native_tls::Certificate::from_pem(root).ok()?)
+        .danger_accept_invalid_hostnames(true) // same reason as http_client_with
+        .build()
+        .ok()
 }
 
 // The client stops accepting connections after a couple of hundred: a champion grid asks for
@@ -108,10 +125,7 @@ type Socket = tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStre
 async fn connect(l: &Lcu) -> Option<Socket> {
     let mut rq = format!("wss://127.0.0.1:{}/", l.port).into_client_request().ok()?;
     rq.headers_mut().insert("Authorization", l.auth.parse().ok()?);
-    let tls = native_tls::TlsConnector::builder()
-        .danger_accept_invalid_certs(true) // same shortcut as http_client
-        .build()
-        .ok()?;
+    let tls = tls_connector(RIOT_ROOT)?;
     let (ws, _) = connect_async_tls_with_config(rq, None, false, Some(Connector::NativeTls(tls))).await.ok()?;
     Some(ws)
 }
@@ -187,6 +201,39 @@ mod tests {
     fn a_path_cannot_redirect_the_request_to_another_host() {
         let err = tauri::async_runtime::block_on(request(&http_client(), "GET", "@evil.example/", None));
         assert_eq!(err.unwrap_err(), "percorso non valido");
+    }
+
+    /// A TLS server with the test leaf (CN=127.0.0.1, no SAN) that answers 204 to anything.
+    fn tls_server() -> u16 {
+        use std::io::{Read, Write};
+        let id = native_tls::Identity::from_pkcs8(include_bytes!("../tests/tls/leaf.pem"), include_bytes!("../tests/tls/leaf.key")).unwrap();
+        let acceptor = native_tls::TlsAcceptor::new(id).unwrap();
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        std::thread::spawn(move || {
+            for tcp in listener.incoming().flatten() {
+                // A refused handshake fails here: keep serving the next one.
+                let Ok(mut s) = acceptor.accept(tcp) else { continue };
+                let _ = s.read(&mut [0; 4096]);
+                let _ = s.write_all(b"HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n");
+            }
+        });
+        port
+    }
+
+    #[test]
+    fn only_the_pinned_root_is_trusted() {
+        let port = tls_server();
+        let test_root = include_bytes!("../tests/tls/root.pem");
+        let get = |root: &[u8]| tauri::async_runtime::block_on(
+            http_client_with(root).get(format!("https://127.0.0.1:{port}/")).send());
+        assert_eq!(get(test_root).unwrap().status(), 204);
+        assert!(get(RIOT_ROOT).is_err());
+
+        let handshake = |root: &[u8]| tls_connector(root).unwrap()
+            .connect("127.0.0.1", std::net::TcpStream::connect(("127.0.0.1", port)).unwrap()).is_ok();
+        assert!(handshake(test_root));
+        assert!(!handshake(RIOT_ROOT));
     }
 
     /// Needs a running, logged-in League client: `cargo test -- --ignored`.

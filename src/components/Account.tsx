@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useSnapshot } from 'valtio';
 import { settings, toggleRiotUi } from '../lib/client.ts';
-import { icon, useClient } from '../lib/view.ts';
+import { icon, useClient, useClickAway } from '../lib/view.ts';
 import { minimize, close, desktop } from '../lib/win.ts';
 import './Account.css';
 
@@ -9,6 +9,7 @@ export default function Account() {
   const c = useClient();
   const set = useSnapshot(settings);
   const [menuOpen, setMenuOpen] = useState(false);
+  useClickAway(menuOpen, '.account', () => setMenuOpen(false));
 
   return <>
     {/* The window has no system frame: this strip is what you drag it by. */}

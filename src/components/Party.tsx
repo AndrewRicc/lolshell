@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { animate, stagger, svg } from 'animejs';
-import { ROLES, roleName, pickRoles, leave, kick, promote, lobbyChat, openChat, type Member } from '../lib/client.ts';
+import { ROLES, roleName, pickRoles, leave, kick, promote, openParty, lobbyChat, openChat, type Member } from '../lib/client.ts';
 import RoleGlyph from './RoleGlyph.tsx';
 import Badge from './Badge.tsx';
 import { ui, view, icon, unread, nameOf, useClient } from '../lib/view.ts';
@@ -51,6 +51,30 @@ export default function Party() {
     });
   });
 
+  // Opening the party: a blade of light crosses the panel and the empty seats unlock one by one.
+  // Closing is quicker and quieter. Driven by the client's state, so it also plays when another leader flips it.
+  const gate = useRef<ReturnType<typeof animate>[]>([]);
+  useOnChange(c.lobby?.partyType, (prev, next) => {
+    if (!prev || !next || still() || !root.current) return;
+    gate.current.forEach((a) => a.revert()); // a quick flip back starts from clean seats, not from mid-turn
+    const el = root.current;
+    const seats = el.querySelectorAll('.member.free');
+    if (next === 'open') {
+      const sweep = el.appendChild(Object.assign(document.createElement('i'), { className: 'sweep' }));
+      animate(sweep, { x: ['-100%', '100%'], opacity: [0, 1, 0], duration: 900, ease: 'outQuart', onComplete: () => sweep.remove() });
+    }
+    // The "+" is symmetric under a quarter turn, so handing the seats back to CSS at the end shows no jump.
+    const anims = next === 'open' ? [
+      animate(seats, { scale: [0.94, 1], duration: 500, delay: stagger(70, { start: 150 }), ease: 'outQuart' }),
+      animate(el.querySelectorAll('.member.free svg'), { rotate: [90, 0], scale: [0.5, 1], duration: 500, delay: stagger(70, { start: 150 }), ease: 'outBack(2)' }),
+    ] : [
+      animate(seats, { scale: [1, 0.96, 1], duration: 280, ease: 'outQuad' }),
+      animate(el.querySelectorAll('.member.free svg'), { rotate: [0, -90], scale: [1, 0.7, 1], duration: 280, ease: 'outQuad' }),
+    ];
+    gate.current = anims;
+    anims[anims.length - 1].then(() => anims.forEach((a) => a.revert()));
+  });
+
   // Role menu: the options step in as it opens ('toggle' does not bubble, so catch it on the way down).
   useEffect(() => {
     const el = root.current!;
@@ -64,15 +88,20 @@ export default function Party() {
   }, []);
 
   return (
-    <section ref={root} aria-labelledby="h-party">
+    <section ref={root} aria-labelledby="h-party" data-open={c.lobby?.partyType === 'open' || undefined}>
       <div className="head">
         <h2 id="h-party">Party</h2>
         <span className="head-actions">
           {room && c.chatOpen !== room && (
-            <button className="chip" onClick={() => openChat(room)}>
+            <button className="chip" data-opens-chat onClick={() => openChat(room)}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14v10h-8l-4 3v-3H5z" /></svg>
               Chat del party<Badge n={+unread(room)} label={`${unread(room)} messaggi non letti`} />
             </button>
+          )}
+          {c.lobby && stage === 'lobby' && me?.isLeader && (
+            <label className="open">
+              <input type="checkbox" role="switch" checked={c.lobby.partyType === 'open'} disabled={c.busy} onChange={(e) => openParty(e.target.checked)} /> Party aperto
+            </label>
           )}
           {c.lobby && stage === 'lobby' && <button className="link" onClick={leave} disabled={c.busy}>Esci dal party</button>}
         </span>

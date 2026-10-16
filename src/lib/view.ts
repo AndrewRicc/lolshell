@@ -1,5 +1,5 @@
 // What several parts of the interface need to know about the client's state, worked out once.
-import { useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { proxy, snapshot, subscribe } from 'valtio';
 import { c, queue, roles, type Member } from './client.ts';
 import { asset } from './lcu.ts';
@@ -12,6 +12,16 @@ export const ui = proxy({ friendsOpen: false, scene: null as string | null });
 // render reads off the snapshot, and the helpers here and in client.ts read `c` itself.
 const watch = (cb: () => void) => subscribe(c, cb);
 export const useClient = () => useSyncExternalStore(watch, () => snapshot(c));
+
+// Closes a panel when a press lands outside it. `inside` also lists the buttons that open it, so they are not a press away.
+export function useClickAway(open: boolean, inside: string, close: () => void) {
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => { if (!(e.target as Element).closest?.(inside)) close(); };
+    document.addEventListener('pointerdown', away, true);
+    return () => document.removeEventListener('pointerdown', away, true);
+  }, [open, inside, close]);
+}
 
 export const view = {
   get stage() {

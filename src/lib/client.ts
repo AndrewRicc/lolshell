@@ -14,7 +14,7 @@ export interface Member {
   allowedStartActivity?: boolean; allowedChangeActivity?: boolean; allowedInviteOthers?: boolean; allowedKickOthers?: boolean;
 }
 export interface Lobby {
-  members: Member[]; localMember: Member; canStartActivity: boolean; multiUserChatId?: string;
+  members: Member[]; localMember: Member; canStartActivity: boolean; multiUserChatId?: string; partyType?: string;
   invitations?: { toSummonerId: number; state: string }[];
   gameConfig: {
     queueId: number; isCustom: boolean; showPositionSelector: boolean; maxLobbySize?: number;
@@ -539,3 +539,5 @@ export const answerRequest = (puuid: string, yes: boolean) => act(() => yes
 
 export const kick = (summonerId: number) => act(() => lcu('POST', `/lol-lobby/v2/lobby/members/${summonerId}/kick`));
 export const promote = (summonerId: number) => act(() => lcu('POST', `/lol-lobby/v2/lobby/members/${summonerId}/promote`));
+// An open party lets friends join without an invite.
+export const openParty = (open: boolean) => act(() => lcu('PUT', '/lol-lobby/v2/lobby/partyType', open ? 'open' : 'closed'));

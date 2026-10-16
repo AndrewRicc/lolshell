@@ -2,16 +2,19 @@
 // The desktop app does the same job in src-tauri/src/lib.rs.
 // Reads the lockfile, proxies /lcu/* to the client's local API and relays its events as SSE.
 import http from 'node:http';
+import https from 'node:https';
 import assert from 'node:assert';
 import { readFileSync } from 'node:fs';
-
-// shortcut: TLS check off process-wide because the client uses a self-signed cert and we only
-// ever call 127.0.0.1; pin Riot's root cert before adding any other outbound request.
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+import { Agent, fetch, WebSocket } from 'undici';
 
 const LOCKFILE = process.env.LOL_LOCKFILE ?? 'D:/Riot Games/League of Legends/lockfile';
 const PORT = 5757;
 const SELF = `127.0.0.1:${PORT}`;
+
+// Trust only Riot's root CA. Name check off: the client's cert is for 127.0.0.1 with no SAN, and we only dial 127.0.0.1.
+const RIOT_ROOT = readFileSync(new URL('./src-tauri/riotgames.pem', import.meta.url));
+const pinned = (ca) => new Agent({ connect: { ca, checkServerIdentity: () => undefined } });
+const lcuAgent = pinned(RIOT_ROOT);
 
 // Re-read on every use: port and password change each time the client restarts.
 function lcu() {
@@ -26,6 +29,13 @@ const allowed = (host, origin) => host === SELF && (!origin || origin === `http:
 if (process.argv.includes('--selftest')) {
   assert(allowed(SELF, undefined) && allowed(SELF, `http://${SELF}`));
   assert(!allowed(SELF, 'https://evil.example') && !allowed('evil.example', undefined));
+  const fixture = (f) => readFileSync(new URL(`./src-tauri/tests/tls/${f}`, import.meta.url));
+  const server = https.createServer({ cert: fixture('leaf.pem'), key: fixture('leaf.key') }, (q, s) => s.writeHead(204).end());
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  const url = `https://127.0.0.1:${server.address().port}/`;
+  assert.equal((await fetch(url, { dispatcher: pinned(fixture('root.pem')) })).status, 204);
+  await assert.rejects(fetch(url, { dispatcher: pinned(RIOT_ROOT) }));
+  server.close();
   console.log('ok');
   process.exit(0);
 }
@@ -44,7 +54,7 @@ function connect() {
   let ws;
   try {
     const { port, auth } = lcu();
-    ws = new WebSocket(`wss://127.0.0.1:${port}/`, { protocols: 'wamp', headers: { Authorization: auth } });
+    ws = new WebSocket(`wss://127.0.0.1:${port}/`, { protocols: 'wamp', headers: { Authorization: auth }, dispatcher: lcuAgent });
   } catch {
     return setTimeout(connect, 2000); // client not running yet
   }
@@ -68,7 +78,7 @@ http.createServer(async (req, res) => {
       const { port, auth } = lcu();
       const body = ['GET', 'HEAD'].includes(req.method) ? undefined : Buffer.concat(await req.toArray());
       const r = await fetch(`https://127.0.0.1:${port}${req.url.slice(4)}`, {
-        method: req.method, body, headers: { Authorization: auth, 'Content-Type': 'application/json' },
+        method: req.method, body, headers: { Authorization: auth, 'Content-Type': 'application/json' }, dispatcher: lcuAgent,
       });
       return res.writeHead(r.status, { 'Content-Type': r.headers.get('content-type') ?? 'application/json' })
         .end(Buffer.from(await r.arrayBuffer()));

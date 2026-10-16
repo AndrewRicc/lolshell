@@ -71,6 +71,8 @@ LeagueClient.exe
   served by the client itself through a custom `lcu://` scheme: nothing from Riot is bundled.
 - One WebSocket subscription relays every client event to the window, so the interface mirrors
   the client's state instead of keeping its own copy.
+- Connections to the client trust only Riot's root certificate (`src-tauri/riotgames.pem`), in the
+  app and in `bridge.mjs`; the host name is not checked, since only `127.0.0.1` is ever dialled.
 
 The client's API is undocumented and can change with any patch. `api/help-full.json` is the
 client's own description of it (patch 16.20), saved from the `/help` endpoint.
@@ -116,8 +118,6 @@ cd src-tauri && cargo test
 
 ## Known limits
 
-- TLS verification is disabled for the client's self-signed certificate. Every request goes to
-  `127.0.0.1`; Riot's root certificate should be pinned before anything else is called.
 - The match-found progress bar assumes a 10 second window: the client only reports elapsed time.
 - Switching team and adding bots in custom games are not supported yet.
 - The app icon is a placeholder.

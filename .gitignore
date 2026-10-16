@@ -6,3 +6,4 @@ src-tauri/gen/
 # AI tooling state
 .claude/
 .impeccable/
+docs/

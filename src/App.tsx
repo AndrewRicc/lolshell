@@ -69,7 +69,7 @@ export default function App() {
       {drifting && <div className="motes" ref={field} aria-hidden="true">{motes.map((m, i) => <i key={i} className="mote" style={{ left: m.left }}></i>)}</div>}
 
       <Account />
-      {c.chatOpen && <Chat />}
+      {c.connected && <Chat />}
       <Toast {...toast} on={!!c.error} />
 
       <main>
