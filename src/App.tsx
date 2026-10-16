@@ -7,6 +7,7 @@ import { useMotion, useOnChange, still } from './lib/motion.ts';
 import Backdrop, { type BackdropHandle } from './components/Backdrop.tsx';
 import Account from './components/Account.tsx';
 import Chat from './components/Chat.tsx';
+import PostGame from './components/PostGame.tsx';
 import Status from './components/Status.tsx';
 import Party from './components/Party.tsx';
 import ModePicker from './components/ModePicker.tsx';
@@ -86,6 +87,7 @@ export default function App() {
             {active && <Party />}
             {stage === 'lobby' && <ModePicker />}
             {stage === 'select' && <Select />}
+            {stage === 'post' && c.eog && <PostGame />}
 
             {stage === 'queue' && <>
               {penalty > 0 && <p className="notice">Coda a bassa priorità: restano {mmss(penalty)} di attesa aggiuntiva.</p>}
@@ -98,7 +100,7 @@ export default function App() {
           {c.connected && <Friends />}
         </div>
 
-        {(active || stage === 'select') && <Bar />}
+        {(active || stage === 'select' || (stage === 'post' && c.eog)) && <Bar />}
       </main>
     </div>
   );

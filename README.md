@@ -22,13 +22,15 @@ automatically for everything lolshell does not cover yet.
 - **Champion select**: both teams, bans, turn timer, searchable champion grid, lock in, summoner
   spells, rune pages (pick one, edit it or build a new one, starting from the client's recommended
   pages); in ARAM the bench, rerolls and champion swaps with teammates.
+- **Post-game**: win or loss, both teams with KDA, CS, damage, gold and items, the mastery grade, and the
+  honor vote (one heart per player, as many as the game's votes). Play again or leave from there.
 - **Friends**: the full list with presence, invites to your party, friend requests in and out.
 - **Chat**: party chat and private conversations, with unread counts.
 - **Motion**: short animations (pick and ban moments, match found, queue, panels) built on
   [anime.js](https://animejs.com); with reduced motion requested in the system they are all off.
 - **Window**: fixed 1280x720, frameless, with a tray icon.
 
-Skins, post-game, store, loot and TFT are not implemented: Riot's interface covers them.
+Skins, store, loot and TFT are not implemented: Riot's interface covers them.
 Champion select has been through custom draft games (ban, pick, lock in, quit); ARAM bench,
 rerolls, swaps and rune saving have only been exercised against simulated sessions so far.
 

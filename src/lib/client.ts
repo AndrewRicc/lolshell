@@ -4,6 +4,7 @@ import { emitMoments, moments } from './moments.ts';
 import { proxy, subscribe } from 'valtio';
 import { lcu, onEvent, type LcuEvent } from './lcu.ts';
 import { summarize } from './usage.ts';
+import type { Ballot, Eog, HonorTarget, Mastery } from './postgame.ts';
 import * as win from './win.ts';
 
 // What the client sends, reduced to the fields read here and in the components.
@@ -53,6 +54,7 @@ export interface RunePage {
 }
 export interface RuneStyle { id: number; name: string; iconPath: string; allowedSubStyles: number[]; slots: { type: string; slotLabel: string; perks: number[] }[] }
 export interface Perk { id: number; name: string; iconPath: string; shortDesc?: string }
+export interface Item { id: number; name: string; iconPath: string }
 export interface RecommendedPage { perks: { id: number }[]; primaryPerkStyleId: number; secondaryPerkStyleId: number; keystone?: { name: string; iconPath: string } }
 interface RawQueue {
   id: number; name: string; description: string; category: string; gameMode: string; mapId: number;
@@ -97,6 +99,10 @@ export const c = proxy({
   chatOpen: null as string | null,
   roomHidden: null as string | null, // party chat whose tab the user closed
   select: null as Session | null, // the champion select session, while there is one
+  eog: null as Eog | null, // the end-of-game summary, once the game's stats are in
+  honor: null as Ballot | null,
+  mastery: null as Mastery | null,
+  items: [] as Item[], // every item, for the end-of-game icons: loaded the first time one is needed
   pickable: [] as number[], // champion ids the client lets you pick, and ban, right now
   bannable: [] as number[],
   subset: [] as number[], // the champions dealt to you when the mode deals a few (allowSubsetChampionPicks)
@@ -143,6 +149,7 @@ export async function refresh() {
   c.requests = requests ?? [];
   setLobby(lobby);
   setSelect(select);
+  if (POST_GAME.includes(c.phase)) loadPostGame();
   showLobbyChat();
   autoAccept();
   if (!c.queues.length) loadDefaults();
@@ -276,7 +283,23 @@ function setPhase(next: string | null) {
   } else if (c.phase === 'ChampSelect') {
     win.summon();
     opt(SELECT).then((s) => { if (s && !c.select) setSelect(s); });
+  } else if (c.phase === 'PreEndOfGame') {
+    win.summon();
+    loadPostGame();
   }
+}
+
+// After a game: the stats arrive first (WaitingForStats), then the honor vote (PreEndOfGame), then the summary stays (EndOfGame).
+export const POST_GAME = ['WaitingForStats', 'PreEndOfGame', 'EndOfGame'];
+async function loadPostGame() {
+  const [eog, honor, mastery, items] = await Promise.all([
+    opt('/lol-end-of-game/v1/eog-stats-block'), opt('/lol-honor-v2/v1/ballot'), opt('/lol-end-of-game/v1/champion-mastery-updates'),
+    c.items.length ? null : opt('/lol-game-data/assets/v1/items.json'),
+  ]);
+  c.eog = eog ?? c.eog;
+  c.honor = honor ?? c.honor;
+  c.mastery = mastery ?? c.mastery;
+  if (items) c.items = items;
 }
 
 function autoAccept() {
@@ -305,6 +328,12 @@ function handle({ uri, eventType, data }: LcuEvent) {
     autoAccept();
   } else if (uri === SELECT) {
     setSelect(gone ? null : data);
+  } else if (uri === '/lol-end-of-game/v1/eog-stats-block') {
+    c.eog = gone ? null : data;
+  } else if (uri === '/lol-honor-v2/v1/ballot') {
+    c.honor = gone ? null : data;
+  } else if (uri === '/lol-end-of-game/v1/champion-mastery-updates') {
+    c.mastery = gone ? null : data;
   } else if (uri === SUBSET) {
     c.subset = gone ? [] : data ?? [];
   } else if (uri === '/lol-champ-select/v1/pickable-champion-ids') {
@@ -405,6 +434,12 @@ export const play = () => act(async () => {
 export const cancelSearch = () => act(() => lcu('DELETE', '/lol-lobby/v2/lobby/matchmaking/search'));
 export const accept = () => act(() => lcu('POST', '/lol-matchmaking/v1/ready-check/accept'));
 export const decline = () => act(() => lcu('POST', '/lol-matchmaking/v1/ready-check/decline'));
+
+// One vote of the game's pool; the ballot event that follows marks the player as honored.
+export const honor = (t: HonorTarget) => act(() => lcu('POST', '/lol-honor-v2/v1/honor-player', { gameId: c.honor!.gameId, puuid: t.puuid, summonerId: t.summonerId, honorType: 'HEART' }));
+// Back to the same party, as Riot's "Play again"; leaving the summary goes back to the home screen.
+export const playAgain = () => act(() => lcu('POST', '/lol-lobby/v2/play-again'));
+export const leaveSummary = () => act(() => lcu('POST', '/lol-end-of-game/v1/state/dismiss-stats'));
 export const leave = () => act(() => lcu('DELETE', '/lol-lobby/v2/lobby'));
 
 export const invite = (summonerId: number) => act(async () => {

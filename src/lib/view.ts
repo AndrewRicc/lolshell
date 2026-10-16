@@ -1,7 +1,7 @@
 // What several parts of the interface need to know about the client's state, worked out once.
 import { useEffect, useSyncExternalStore } from 'react';
 import { proxy, snapshot, subscribe } from 'valtio';
-import { c, queue, roles, type Member } from './client.ts';
+import { c, queue, roles, POST_GAME, type Member } from './client.ts';
 import { asset } from './lcu.ts';
 
 // Interface state shared between components: the party's empty seats open the friends list; a scene
@@ -30,6 +30,7 @@ export const view = {
       : c.phase === 'Matchmaking' ? 'queue'
       : c.phase === 'None' || c.phase === 'Lobby' ? 'lobby'
       : c.phase === 'ChampSelect' && c.select ? 'select'
+      : POST_GAME.includes(c.phase) ? 'post'
       : 'game';
   },
   get q() { return queue(); },

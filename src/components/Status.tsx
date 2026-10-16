@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { animate, stagger } from 'animejs';
 import { splitText } from 'animejs/text';
 import { myAction } from '../lib/client.ts';
+import { postGame } from '../lib/postgame.ts';
 import { view, mmss, useClient } from '../lib/view.ts';
 import { useMotion, useOnChange, still } from '../lib/motion.ts';
 import './Status.css';
@@ -15,6 +16,7 @@ export default function Status() {
   const members = view.members;
   const size = view.size;
   const response = view.response;
+  const post = c.eog ? postGame(c.eog) : null;
 
   const timer = c.select?.timer;
   const action = myAction();
@@ -111,6 +113,10 @@ export default function Status() {
               ? 'Rifiutata.'
               : 'Accetta prima che scada il tempo.'}
         </p>
+      </> : stage === 'post' ? <>
+        <p className="eyebrow">Fine partita</p>
+        <h1 key={`post-${c.eog ? (post?.win ? 'win' : 'loss') : 'wait'}`}>{!c.eog ? 'Statistiche in arrivo' : post!.win ? 'Vittoria' : 'Sconfitta'}</h1>
+        <p>{post ? `${post.me.champion} · ${post.me.kills} / ${post.me.deaths} / ${post.me.assists}` : 'Il client sta raccogliendo i risultati.'}</p>
       </> : <>
         <p className="eyebrow">In partita</p>
         <h1 key="game">{c.phase === 'ChampSelect' ? 'Selezione campione' : 'Partita in corso'}</h1>

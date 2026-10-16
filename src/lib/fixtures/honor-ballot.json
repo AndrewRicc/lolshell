@@ -1,0 +1,105 @@
+{
+ "eligibleAllies": [
+  {
+   "botPlayer": false,
+   "championId": 523,
+   "championName": "Aphelios",
+   "puuid": "puuid-2",
+   "role": "Invalid",
+   "skinSplashPath": "/lol-game-data/assets/ASSETS/Characters/Aphelios/Skins/Skin20/Images/aphelios_splash_centered_20.jpg",
+   "summonerId": 1002,
+   "summonerName": "Giocatore 2"
+  },
+  {
+   "botPlayer": false,
+   "championId": 99,
+   "championName": "Lux",
+   "puuid": "puuid-3",
+   "role": "Invalid",
+   "skinSplashPath": "/lol-game-data/assets/ASSETS/Characters/Lux/Skins/Skin08/Images/lux_splash_centered_8.jpg",
+   "summonerId": 1003,
+   "summonerName": "Giocatore 3"
+  },
+  {
+   "botPlayer": false,
+   "championId": 235,
+   "championName": "Senna",
+   "puuid": "puuid-4",
+   "role": "Invalid",
+   "skinSplashPath": "/lol-game-data/assets/ASSETS/Characters/Senna/Skins/Base/Images/senna_splash_centered_0.jpg",
+   "summonerId": 1004,
+   "summonerName": "Giocatore 4"
+  },
+  {
+   "botPlayer": false,
+   "championId": 55,
+   "championName": "Katarina",
+   "puuid": "puuid-5",
+   "role": "Invalid",
+   "skinSplashPath": "/lol-game-data/assets/ASSETS/Characters/Katarina/Skins/Skin12/Images/katarina_splash_centered_12.jpg",
+   "summonerId": 1005,
+   "summonerName": "Giocatore 5"
+  }
+ ],
+ "eligibleOpponents": [
+  {
+   "botPlayer": false,
+   "championId": 63,
+   "championName": "Brand",
+   "puuid": "puuid-6",
+   "role": "Invalid",
+   "skinSplashPath": "/lol-game-data/assets/ASSETS/Characters/Brand/Skins/Base/Images/brand_splash_centered_0.jpg",
+   "summonerId": 1006,
+   "summonerName": "Giocatore 6"
+  },
+  {
+   "botPlayer": false,
+   "championId": 136,
+   "championName": "Aurelion Sol",
+   "puuid": "puuid-7",
+   "role": "Invalid",
+   "skinSplashPath": "/lol-game-data/assets/ASSETS/Characters/AurelionSol/Skins/Base/Images/aurelionsol_splash_centered_0.jpg",
+   "summonerId": 1007,
+   "summonerName": "Giocatore 7"
+  },
+  {
+   "botPlayer": false,
+   "championId": 267,
+   "championName": "Nami",
+   "puuid": "puuid-8",
+   "role": "Invalid",
+   "skinSplashPath": "/lol-game-data/assets/ASSETS/Characters/Nami/Skins/Base/Images/nami_splash_centered_0.jpg",
+   "summonerId": 1008,
+   "summonerName": "Giocatore 8"
+  },
+  {
+   "botPlayer": false,
+   "championId": 85,
+   "championName": "Kennen",
+   "puuid": "puuid-9",
+   "role": "Invalid",
+   "skinSplashPath": "/lol-game-data/assets/ASSETS/Characters/Kennen/Skins/Base/Images/kennen_splash_centered_0.jpg",
+   "summonerId": 1009,
+   "summonerName": "Giocatore 9"
+  },
+  {
+   "botPlayer": false,
+   "championId": 555,
+   "championName": "Pyke",
+   "puuid": "puuid-10",
+   "role": "Invalid",
+   "skinSplashPath": "/lol-game-data/assets/ASSETS/Characters/Pyke/Skins/Base/Images/pyke_splash_centered_0.jpg",
+   "summonerId": 1010,
+   "summonerName": "Giocatore 10"
+  }
+ ],
+ "gameId": 1234567890,
+ "honoredPlayers": [],
+ "votePool": {
+  "fromGamePlayed": 1,
+  "fromHighHonor": 0,
+  "fromRecentHonors": 1,
+  "fromRollover": 3,
+  "votes": 4
+ }
+}

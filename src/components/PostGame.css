@@ -1,0 +1,36 @@
+/* End-of-game summary: the two teams as tight rows, your own line lit, the winners in gold. */
+.post { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.post .head { margin-bottom: 0; flex-wrap: wrap; }
+.post .mastery { margin-left: auto; font-size: 12px; color: var(--muted); }
+.post .mastery b { font: 400 15px/1 var(--display); color: var(--gold); }
+.post .honor-hint { font-size: 12px; color: var(--muted); }
+
+.post .side h3 { display: flex; align-items: baseline; gap: 10px; margin: 0 0 4px; padding: 0 8px; font: 400 12px/1.4 var(--display); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.post .side .result { color: var(--red); }
+.post .side.win .result { color: var(--gold); }
+.post .side .kills { margin-left: auto; font: 12px/1.4 var(--ui); letter-spacing: 0; text-transform: none; font-variant-numeric: tabular-nums; }
+
+/* One row per player: champion and spells, name, KDA, CS, damage bar, gold, items, honor. */
+.post .player { display: grid; grid-template-columns: 30px 14px minmax(0, 1fr) 76px 34px 116px 40px 158px 28px; align-items: center; column-gap: 8px; height: 36px; padding: 0 8px; border-radius: 10px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.post .player:nth-child(odd) { background: rgb(255 255 255 / 0.03); }
+.post .player.me { background: color-mix(in srgb, var(--teal) 12%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--teal) 40%, transparent); }
+.post .champ { border-radius: 8px; }
+.post .spells { display: grid; gap: 2px; }
+.post .spells img { border-radius: 3px; }
+.post .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.post .who small { font-weight: 400; color: var(--red); }
+.post .kda { text-align: center; }
+.post .cs, .post .gold { text-align: right; color: var(--muted); }
+.post .dmg { position: relative; display: grid; align-items: center; height: 20px; padding-left: 6px; font-size: 12px; isolation: isolate; }
+.post .dmg i { position: absolute; inset: 3px auto 3px 0; z-index: -1; width: 100%; border-radius: 3px; background: color-mix(in srgb, var(--gold) 28%, transparent); transform-origin: left; }
+.post .me .dmg i { background: color-mix(in srgb, var(--teal) 40%, transparent); }
+.post .items { display: flex; gap: 2px; }
+.post .items img { border-radius: 4px; }
+
+/* Honor: a heart per player you can vote for; once given it stays lit. */
+.post .heart { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border-radius: 50%; background: none; color: var(--muted); transition: color 0.15s, background 0.15s; }
+.post .heart svg { width: 18px; height: 18px; }
+.post .heart:hover:not(:disabled) { background: var(--fill-hi); color: var(--cream); }
+.post .heart.on { color: var(--teal); }
+.post .heart.on svg { fill: currentColor; }
+.post .heart:disabled:not(.on) { opacity: 0.35; }

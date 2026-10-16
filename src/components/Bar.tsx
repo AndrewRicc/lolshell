@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { useSnapshot } from 'valtio';
 import { animate, stagger } from 'animejs';
-import { settings, play, cancelSearch, accept, decline, myAction, lockIn, reroll, quitSelect } from '../lib/client.ts';
+import { settings, play, cancelSearch, accept, decline, myAction, lockIn, reroll, quitSelect, playAgain, leaveSummary } from '../lib/client.ts';
 import { view, useClient } from '../lib/view.ts';
 import { hide, desktop } from '../lib/win.ts';
 import { useMotion, still, remember, recall } from '../lib/motion.ts';
@@ -71,11 +71,14 @@ export default function Bar() {
           {(c.select!.isCustomGame || c.select!.showQuitButton) && (
             <button className="quiet" onClick={quitSelect} disabled={c.busy}>Esci</button>
           )}
+        </> : stage === 'post' ? <>
+          <button className="primary" onClick={playAgain} disabled={c.busy}>Gioca ancora</button>
+          <button className="quiet" onClick={leaveSummary} disabled={c.busy}>Esci</button>
         </> : response !== 'Declined' && <>
           <button className="primary" ref={btn} onClick={accept} disabled={c.busy || response !== 'None'}>Accetta</button>
           {response === 'None' && <button className="quiet" onClick={decline} disabled={c.busy}>Rifiuta</button>}
         </>}
-        {stage !== 'select' && (
+        {stage !== 'select' && stage !== 'post' && (
           <label className={set.autoAccept ? 'auto on' : 'auto'}>
             <input type="checkbox" role="switch" checked={set.autoAccept} onChange={(e) => { settings.autoAccept = e.target.checked; }} />
             <span><b>Auto-accetta</b><small>{set.autoAccept ? 'L’app accetta al posto tuo' : 'Accetti tu ogni partita'}</small></span>
