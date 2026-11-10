@@ -1,9 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { animate, stagger, svg } from 'animejs';
-import { ROLES, roleName, pickRoles, leave, kick, promote, openParty, lobbyChat, openChat, type Member } from '../lib/client.ts';
+import { ROLES, roleName, pickRoles, leave, kick, promote, openParty, lobbyChat, openChat, invite, type Member } from '../lib/client.ts';
 import RoleGlyph from './RoleGlyph.tsx';
 import Badge from './Badge.tsx';
-import { ui, view, icon, unread, nameOf, useClient } from '../lib/view.ts';
+import { ui, view, icon, unread, nameOf, onLeague, inParty, invited, useClient } from '../lib/view.ts';
 import { still, useMotion, useOnChange } from '../lib/motion.ts';
 import './Party.css';
 
@@ -17,6 +17,16 @@ export default function Party() {
   const size = view.size;
   const room = lobbyChat();
   const free = Math.max(size - members.length, 0);
+  const canInvite = stage === 'lobby' && (!c.lobby || !!me?.allowedInviteOthers);
+  // Each empty seat offers a friend free to play right now, one press to invite; seats left over open the full list.
+  const ready = c.friends.filter((f) => onLeague(f) && f.availability === 'chat' && !inParty(f.summonerId) && !invited(f.summonerId)).slice(0, free);
+  // Removing someone takes a second press within three seconds.
+  const [armed, setArmed] = useState<number | null>(null);
+  useEffect(() => {
+    if (armed == null) return;
+    const t = setTimeout(() => setArmed(null), 3000);
+    return () => clearTimeout(t);
+  }, [armed]);
   // Only a custom game has two sides; the client lists who sits on each.
   const teamOf = (m: Member) => c.lobby?.gameConfig?.customTeam200?.some((x) => x.puuid === m.puuid) ? 'Squadra 2'
     : c.lobby?.gameConfig?.customTeam100?.some((x) => x.puuid === m.puuid) ? 'Squadra 1' : '';
@@ -103,6 +113,7 @@ export default function Party() {
               <input type="checkbox" role="switch" checked={c.lobby.partyType === 'open'} disabled={c.busy} onChange={(e) => openParty(e.target.checked)} /> Party aperto
             </label>
           )}
+          {!!ready.length && ready.length === free && canInvite && <button className="link" onClick={() => { ui.friendsOpen = true; }}>Altri amici</button>}
           {c.lobby && stage === 'lobby' && <button className="link" onClick={leave} disabled={c.busy}>Esci dal party</button>}
         </span>
       </div>
@@ -146,7 +157,7 @@ export default function Party() {
                     </button>
                   )}
                   {me?.allowedKickOthers && (
-                    <button className="icon" aria-label={`Espelli ${nameOf(m)} dal party`} title="Espelli dal party" disabled={c.busy} onClick={() => kick(m.summonerId)}>
+                    <button className={armed === m.summonerId ? 'icon armed' : 'icon'} aria-label={armed === m.summonerId ? `Conferma: espelli ${nameOf(m)}` : `Espelli ${nameOf(m)} dal party`} title={armed === m.summonerId ? 'Premi di nuovo per espellere' : 'Espelli dal party'} disabled={c.busy} onClick={() => { if (armed === m.summonerId) { setArmed(null); void kick(m.summonerId); } else setArmed(m.summonerId); }}>
                       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
                     </button>
                   )}
@@ -158,14 +169,25 @@ export default function Party() {
         {size > 5 ? (
           !!free && <li className="member free">{free === 1 ? '1 posto libero' : `${free} posti liberi`}</li>
         ) : (
-          Array.from({ length: free }, (_, i) => (
-            <li key={i}>
-              <button className="member free" disabled={stage !== 'lobby' || (!!c.lobby && !me?.allowedInviteOthers)} onClick={() => { ui.friendsOpen = true; }}>
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-                Invita
-              </button>
-            </li>
-          ))
+          Array.from({ length: free }, (_, i) => {
+            const f = canInvite ? ready[i] : undefined;
+            return (
+              <li key={f?.puuid ?? i}>
+                {f ? (
+                  <button className="member free suggest" aria-label={`Invita ${f.gameName}`} disabled={c.busy} onClick={() => invite(f.summonerId)}>
+                    <img src={icon(f.icon)} alt="" width="40" height="40" />
+                    <span className="member-name"><span>{f.gameName}</span></span>
+                    <small>Invita</small>
+                  </button>
+                ) : (
+                  <button className="member free" disabled={!canInvite} onClick={() => { ui.friendsOpen = true; }}>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                    Invita
+                  </button>
+                )}
+              </li>
+            );
+          })
         )}
       </ul>
       {q?.roles && stage === 'lobby' && [0, 1].map((n) => (

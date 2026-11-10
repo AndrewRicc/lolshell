@@ -35,6 +35,7 @@ export default function Account() {
         <button className="quiet" onClick={toggleRiotUi} disabled={!c.connected || c.busy}>
           {c.riotUi ? 'Spegni l’interfaccia di Riot' : 'Riaccendi l’interfaccia di Riot'}
         </button>
+        <small>{c.riotUi ? 'Chiude la finestra di Riot per risparmiare memoria; la partita e questa app continuano.' : 'Riapre la finestra di Riot, per le funzioni che qui non ci sono.'}</small>
       </div>
     </div>
   </>;

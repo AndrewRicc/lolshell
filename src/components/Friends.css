@@ -6,7 +6,6 @@ aside .friends.open .drawer { grid-template-rows: 1fr; opacity: 1; visibility: v
 /* Friends, bottom right: a pill that opens upward into a list */
 aside { position: absolute; right: 24px; bottom: 18px; z-index: 3; width: 300px; display: grid; gap: 12px; }
 aside section { padding: 16px; }
-aside .friends { border-radius: 26px; }
 aside .friends .pill { width: 100%; display: flex; align-items: baseline; gap: 10px; padding: 15px 18px; }
 aside .friends .pill .count { margin-left: auto; }
 aside .friends .pill .chevron { align-self: center; }
@@ -32,3 +31,4 @@ aside [data-availability="mobile"] { --state: #8fb8ff; }
 aside .people .away img { opacity: 0.5; filter: grayscale(1); }
 aside .people .away b { font-weight: 400; color: var(--muted); }
 aside .tag { white-space: nowrap; }
+aside .offline { margin: 0 18px 14px; }

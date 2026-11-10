@@ -2,11 +2,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { animate, stagger } from 'animejs';
 import { splitText } from 'animejs/text';
 import { myAction } from '../lib/client.ts';
+import { launch } from '../lib/lcu.ts';
 import { postGame } from '../lib/postgame.ts';
 import { view, mmss, useClient } from '../lib/view.ts';
 import { useMotion, useOnChange, still } from '../lib/motion.ts';
 import './Status.css';
 
+const SAID: Record<string, string> = { off: 'Offline', lobby: 'In lobby', queue: 'In coda', ready: 'Partita trovata: accetta', select: 'Selezione campione', post: 'Fine partita', game: 'In partita' };
 const PHASE: Record<string, string> = { PLANNING: 'Preparazione', BAN_PICK: 'Ban e scelte', FINALIZATION: 'Ultimi ritocchi', GAME_STARTING: 'La partita sta partendo' };
 
 export default function Status() {
@@ -17,6 +19,7 @@ export default function Status() {
   const size = view.size;
   const response = view.response;
   const post = c.eog ? postGame(c.eog) : null;
+  const [launchError, setLaunchError] = useState('');
 
   const timer = c.select?.timer;
   const action = myAction();
@@ -75,14 +78,17 @@ export default function Status() {
   useEffect(() => () => { leaving.current.forEach((g) => { g.remove(); }); }, []);
 
   return (
-    <header className="status" ref={root} aria-live="polite">
+    <header className="status" ref={root}>
+      <p className="sr-only" role="status">{SAID[stage]}{stage === 'select' && action?.isInProgress ? '. Tocca a te.' : ''}</p>
       {stage === 'off' ? <>
         <p className="eyebrow">Offline</p>
-        <h1 key="off">Client non collegato</h1>
-        <p>Avvia League dal Riot Client: il collegamento parte da solo.</p>
+        <h1 key="off">Avvio di League…</h1>
+        <p>Se non sei collegato, accedi nella finestra di Riot: qui si apre tutto da solo.</p>
+        <button className="quiet" onClick={() => { setLaunchError(''); launch().catch((e: unknown) => { setLaunchError(`Non riesco ad avviare League (${e instanceof Error ? e.message : String(e)}). Avvialo dal Riot Client.`); }); }}>Avvia League</button>
+        {launchError && <p role="alert">{launchError}</p>}
       </> : stage === 'lobby' ? <>
         <p className="eyebrow">{c.lobby ? 'Lobby aperta' : 'Pronto'}</p>
-        <h1 key="lobby">{q ? q.label : 'Nessuna coda'}</h1>
+        <h1 key="lobby" className={q && q.label.length > 16 ? 'long' : undefined}>{q ? q.label : 'Nessuna coda'}</h1>
         <p className="seats">
           {size <= 10 && (
             <span className="pips" aria-hidden="true">{Array.from({ length: size }, (_, i) => <i key={i} className={i < members.length ? 'on' : undefined}></i>)}</span>

@@ -2,7 +2,7 @@ import { useRef, useState, type FormEvent } from 'react';
 import { animate } from 'animejs';
 import { useSnapshot } from 'valtio';
 import { invite, answerInvite, addFriend, answerRequest, openChat, type Friend } from '../lib/client.ts';
-import { ui, view, icon, unread, useClient } from '../lib/view.ts';
+import { ui, view, icon, unread, onLeague, inParty, invited, useClient } from '../lib/view.ts';
 import { useOnChange, still } from '../lib/motion.ts';
 import Badge from './Badge.tsx';
 import './Friends.css';
@@ -11,13 +11,16 @@ import './Friends.css';
 const AVAILABILITY: Record<string, string> = { chat: 'Disponibile', away: 'Assente', dnd: 'Occupato', mobile: 'Su mobile', offline: 'Offline' };
 const RANK = Object.keys(AVAILABILITY);
 const rank = (f: Friend) => (RANK.indexOf(f.availability) + 1 || RANK.length) - 1;
-const onLeague = (f: Friend) => f.product === 'league_of_legends' && rank(f) < 3;
+// What a friend on League is doing says more than "Occupato".
+const GAME: Record<string, string> = { inGame: 'In partita', championSelect: 'In selezione campione', inQueue: 'In coda' };
+const doing = (f: Friend) => (f.product === 'league_of_legends' && GAME[f.lol?.gameStatus ?? '']) || AVAILABILITY[f.availability] || 'Offline';
 
 export default function Friends() {
   const c = useClient();
   const { friendsOpen } = useSnapshot(ui);
   const [riotId, setRiotId] = useState('');
   const [requestSent, setRequestSent] = useState(false);
+  const [showOffline, setShowOffline] = useState(false);
 
   const stage = view.stage;
   const me = view.me;
@@ -27,6 +30,7 @@ export default function Friends() {
 
   async function add(e: FormEvent) {
     e.preventDefault();
+    if (!riotId.includes('#')) return;
     setRequestSent(false);
     if (await addFriend(riotId)) {
       setRiotId('');
@@ -40,10 +44,13 @@ export default function Friends() {
   }
 
   const pendingInvites = c.invites.filter((i) => i.state === 'Pending');
-  const friends = [...c.friends].sort((a, b) => rank(a) - rank(b) || (a.gameName ?? '').localeCompare(b.gameName ?? ''));
+  const sorted = [...c.friends].sort((a, b) => rank(a) - rank(b) || (a.gameName ?? '').localeCompare(b.gameName ?? ''));
   const online = c.friends.filter(onLeague).length;
-  const inParty = (id: number) => (c.lobby?.members ?? []).some((m) => m.summonerId === id);
-  const invited = (id: number) => (c.lobby?.invitations ?? []).some((i) => i.toSummonerId === id && i.state === 'Pending');
+  const search = riotId.split('#')[0].trim().toLocaleLowerCase();
+  const matches = search ? sorted.filter((f) => (f.gameName || f.name || '').toLocaleLowerCase().includes(search)) : sorted;
+  // Offline friends wait behind one row unless you search for them.
+  const offline = matches.filter((f) => rank(f) >= RANK.length - 1);
+  const friends = search || showOffline ? matches : matches.filter((f) => rank(f) < RANK.length - 1);
   const queueLabel = (id?: number) => c.queues.find((x) => x.id === id)?.label ?? 'una partita';
 
   // A friend who turns available glows teal; with the drawer shut, the online counter pops instead.
@@ -80,13 +87,13 @@ export default function Friends() {
 
       <div className={friendsOpen ? 'friends open' : 'friends'}>
         <button className="pill" aria-expanded={friendsOpen} aria-controls="friends" onClick={() => { ui.friendsOpen = !friendsOpen; }}>
-          <h2>Amici</h2><span className="count">{online} online su {friends.length}</span>
+          <h2>Amici</h2><span className="count">{online} online su {c.friends.length}</span>
           <svg className="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 14 5-5 5 5" /></svg>
         </button>
         <div className="drawer" id="friends" inert={!friendsOpen}><div>
           <form className="add" onSubmit={add}>
-            <input value={riotId} onChange={(e) => { setRiotId(e.target.value); setRequestSent(false); }} placeholder="Aggiungi: Nome#TAG" aria-label="Riot ID da aggiungere agli amici" maxLength={40} autoComplete="off" spellCheck="false" />
-            <button className="icon" aria-label="Invia richiesta di amicizia" disabled={c.busy || !riotId.trim()}>
+            <input value={riotId} onChange={(e) => { setRiotId(e.target.value); setRequestSent(false); }} placeholder="Cerca, o aggiungi Nome#TAG" aria-label="Cerca tra gli amici, o scrivi un Riot ID con #TAG per aggiungerlo" maxLength={40} autoComplete="off" spellCheck="false" />
+            <button className="icon" aria-label="Invia richiesta di amicizia" title="Aggiungi agli amici (serve il #TAG)" disabled={c.busy || !/#./.test(riotId)}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
             </button>
           </form>
@@ -106,13 +113,13 @@ export default function Friends() {
               ))}
             </ul>
           )}
-          {friends.length ? (
+          {friends.length || offline.length ? <>
             <ul className="people">
               {friends.map((f) => (
                 <li key={f.puuid} data-id={f.puuid} className={onLeague(f) ? undefined : 'away'} data-availability={f.availability}>
                   <button className="person chat-with" data-opens-chat aria-label={`Apri la chat con ${f.gameName || f.name}`} onClick={() => chatWith(f)}>
                     <img src={icon(f.icon)} alt="" width="32" height="32" loading="lazy" />
-                    <span><b>{f.gameName || f.name}</b><small>{AVAILABILITY[f.availability] ?? 'Offline'}</small></span>
+                    <span><b>{f.gameName || f.name}</b><small>{doing(f)}</small></span>
                   </button>
                   <Badge n={+unread(f.id)} label={`${unread(f.id)} messaggi non letti`} />
                   {inParty(f.summonerId) ? (
@@ -127,8 +134,11 @@ export default function Friends() {
                 </li>
               ))}
             </ul>
-          ) : (
-            <p className="hint">La lista amici è vuota.</p>
+            {!search && !!offline.length && (
+              <button className="link offline" onClick={() => setShowOffline(!showOffline)}>{showOffline ? 'Nascondi offline' : `${offline.length} offline`}</button>
+            )}
+          </> : (
+            <p className="hint">{search ? `Nessun amico si chiama “${riotId.split('#')[0].trim()}”.` : 'La lista amici è vuota.'}</p>
           )}
         </div></div>
       </div>

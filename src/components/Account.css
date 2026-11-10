@@ -6,7 +6,7 @@
 .titlebar .win:last-child:hover { background: #c42b3a; color: #fff; }
 
 .account { position: absolute; top: 48px; right: 24px; z-index: 4; }
-.account .pill { display: flex; align-items: center; gap: 12px; padding: 6px 12px 6px 18px; border-radius: 999px; }
+.account .pill { display: flex; align-items: center; gap: 12px; padding: 6px 12px 6px 18px; border-radius: 16px; }
 .account .pill:hover { background-color: rgb(22 34 58 / 0.62); }
 .account .who { display: grid; text-align: right; line-height: 1.25; }
 .account .who b { font-weight: 600; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

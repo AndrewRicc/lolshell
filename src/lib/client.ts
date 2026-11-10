@@ -29,7 +29,7 @@ export interface Search {
   errors?: { id: number; message: string; penaltyTimeRemaining: number }[];
 }
 export interface Invite { invitationId: string; fromPuuid: string; fromSummonerName?: string; state: string; canAcceptInvitation: boolean; gameConfig?: { queueId: number } }
-export interface Friend { id: string; puuid: string; summonerId: number; gameName: string; name: string; icon: number; availability: string; product: string }
+export interface Friend { id: string; puuid: string; summonerId: number; gameName: string; name: string; icon: number; availability: string; product: string; lol?: { gameStatus?: string } }
 export interface FriendRequest { puuid: string; direction: string; gameName: string; name: string }
 export interface Conversation { id: string; type: string; gameName?: string; unreadMessageCount?: number }
 export interface Message { id: string; type: string; body: string; fromPuuid: string }
@@ -134,7 +134,9 @@ export async function refresh() {
     c.connected = false;
     return;
   }
+  const was = c.connected;
   c.connected = true;
+  if (!was) lcu('POST', '/riotclient/kill-ux').then(() => { c.riotUi = false; }, () => {});
   const [phase, lobby, search, invites, friends, conversations, requests, select] = await Promise.all([
     opt('/lol-gameflow/v1/gameflow-phase'), opt('/lol-lobby/v2/lobby'), opt('/lol-matchmaking/v1/search'),
     opt('/lol-lobby/v2/received-invitations'), opt('/lol-chat/v1/friends'),
@@ -215,8 +217,8 @@ async function loadDefaults() {
         id: q.id, label: q.description || q.name, custom, gameMode: q.gameMode, mapId: q.mapId,
         mode: {
           key: custom ? 'custom' : q.mapId,
-          name: custom ? 'Custom' :map?.gameModeShortName || map?.name || q.name,
-          bg: art('parties-background'), icon: art('game-select-icon-active'), video: art('game-select-icon-active-video'),
+          name: custom ? 'Custom' : map?.gameModeShortName || map?.name || q.name,
+          bg: art('parties-background'), icon: custom ? null : art('game-select-icon-active'), video: custom ? null : art('game-select-icon-active-video'),
         },
         roles: q.showPositionSelector && !custom,
         // A custom queue's own limit also counts spectators; the two teams hold ten.
@@ -317,6 +319,9 @@ function handle({ uri, eventType, data }: LcuEvent) {
     if (data === 'connected') refresh(); else c.connected = false;
   } else if (uri === '/lol-summoner/v1/current-summoner') {
     if (!c.connected) refresh(); // login finished after we connected
+  } else if (uri === '/riotclient/ux-state/request') {
+    // shortcut: payload shape unverified, any request re-hides; check data.state if it fights the user
+    if (!c.riotUi) lcu('POST', '/riotclient/kill-ux').catch(() => {});
   } else if (uri === '/lol-gameflow/v1/gameflow-phase') {
     setPhase(data);
   } else if (uri === '/lol-lobby/v2/lobby') {

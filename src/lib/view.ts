@@ -1,7 +1,7 @@
 // What several parts of the interface need to know about the client's state, worked out once.
 import { useEffect, useSyncExternalStore } from 'react';
 import { proxy, snapshot, subscribe } from 'valtio';
-import { c, queue, roles, POST_GAME, type Member } from './client.ts';
+import { c, queue, roles, POST_GAME, type Member, type Friend } from './client.ts';
 import { asset } from './lcu.ts';
 
 // Interface state shared between components: the party's empty seats open the friends list; a scene
@@ -61,4 +61,7 @@ export const champSplash = (id: number) => {
   return a ? `/lol-game-data/assets/ASSETS/Characters/${a}/Skins/Base/Images/${a.toLowerCase()}_splash_uncentered_0.jpg` : null;
 };
 export const unread = (id: string) => id !== c.chatOpen && (c.conversations.find((v) => v.id === id)?.unreadMessageCount ?? 0);
+export const onLeague = (f: Friend) => f.product === 'league_of_legends' && ['chat', 'away', 'dnd'].includes(f.availability);
+export const inParty = (summonerId: number) => (c.lobby?.members ?? []).some((m) => m.summonerId === summonerId);
+export const invited = (summonerId: number) => (c.lobby?.invitations ?? []).some((i) => i.toSummonerId === summonerId && i.state === 'Pending');
 export const nameOf = (m: Member) => m.summonerId === c.me?.summonerId ? c.me.gameName : c.names[m.puuid!] ?? m.summonerName ?? '';

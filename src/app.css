@@ -20,6 +20,8 @@
 
 * { box-sizing: border-box; margin: 0; }
 html, body, #app { height: 100%; }
+/* clip, not hidden: the chat dock waits off-screen to the right, and a focused field must not scroll the page to it. */
+#app { overflow: clip; }
 body { background: var(--ink); color: var(--cream); font: 14px/1.45 var(--ui); overflow: hidden; user-select: none; -webkit-user-select: none; cursor: default; }
 input { user-select: text; -webkit-user-select: text; }
 ::selection { background: var(--teal); color: var(--ink); }
@@ -35,14 +37,14 @@ h1, h2 { font-family: var(--display); font-weight: 400; text-transform: uppercas
 h1 { font-size: 30px; line-height: 1.1; letter-spacing: 0.06em; text-wrap: balance; }
 h2 { font-size: 13px; letter-spacing: 0.14em; color: var(--gold); }
 
-section, .friends, .account .pill, .menu, .work > .notice { background: var(--solid); border-radius: 18px; box-shadow: var(--edge), var(--lift); }
-.glass :is(section, .friends, .account .pill, .menu, .work > .notice) { background: var(--glass); backdrop-filter: blur(22px) saturate(1.4); }
+section, .friends, .account .pill, .menu, .work > .notice, .bar .actions { background: var(--solid); border-radius: 18px; box-shadow: var(--edge), var(--lift); }
+.glass :is(section, .friends, .account .pill, .menu, .work > .notice, .bar .actions) { background: var(--glass); backdrop-filter: blur(22px) saturate(1.4); }
 section { padding: 18px; }
 .head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .chevron { width: 16px; height: 16px; color: var(--muted); transition: transform 0.25s var(--ease); }
 [aria-expanded="true"] .chevron { transform: rotate(180deg); }
 .pill { background: none; text-align: inherit; }
-.role { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; background: none; border-radius: 50%; color: var(--gold); }
+.role { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; background: none; border-radius: 8px; color: var(--gold); }
 button.role { background: var(--fill-hi); }
 button.role:hover:not(:disabled) { background: var(--fill-on); }
 button.role:disabled { opacity: 0.45; }
@@ -68,26 +70,31 @@ button.role:disabled { opacity: 0.45; }
 .person { flex: 1; min-width: 0; display: grid; }
 .person b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .badge { flex: none; min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--teal); color: #01221f; font-size: 12px; font-weight: 600; line-height: 18px; text-align: center; }
-.chip { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; background: var(--fill-hi); border-radius: 999px; font-size: 13px; }
+.chip { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; background: var(--fill-hi); border-radius: 8px; font-size: 13px; }
 .chip svg { width: 16px; height: 16px; }
 .chip:hover { background: var(--fill-on); }
-input:not([type]) { flex: 1; min-width: 0; height: 34px; padding: 0 14px; background: var(--fill); border: 0; border-radius: 999px; }
+input:not([type]) { flex: 1; min-width: 0; height: 34px; padding: 0 14px; background: var(--fill); border: 0; border-radius: 10px; }
 input:not([type])::placeholder { color: var(--muted); }
 input:not([type]):focus-visible { outline-offset: 0; }
-.quiet { height: 40px; padding: 0 18px; background: var(--fill-hi); border-radius: 999px; }
+.quiet { height: 40px; padding: 0 18px; background: var(--fill-hi); border-radius: 10px; }
 .quiet:hover:not(:disabled) { background: var(--fill-on); }
 .link { background: none; padding: 0; font-size: 12px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
 .link:hover { color: var(--cream); }
-.icon { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; background: var(--fill-hi); border-radius: 50%; }
+.icon { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; background: var(--fill-hi); border-radius: 9px; }
 .icon:hover:not(:disabled) { background: var(--fill-on); }
 .icon:disabled, .quiet:disabled { opacity: 0.45; }
 .notice { margin-bottom: 10px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .notice[role="alert"] { color: var(--red); }
 
-[role="switch"] { appearance: none; flex: none; position: relative; width: 40px; height: 22px; border-radius: 11px; background: var(--fill-on); cursor: pointer; transition: background 0.15s; }
-[role="switch"]::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--cream); transition: transform 0.2s var(--ease); }
-[role="switch"]:checked { background: var(--teal); }
-[role="switch"]:checked::after { transform: translateX(18px); background: #01221f; }
+/* Switches: a slim slot with a gold diamond, the shape of the client's own mode marks. On, the slot fills teal
+   and the diamond turns a quarter as it crosses, ending on the same diamond. */
+[role="switch"] { appearance: none; flex: none; position: relative; width: 44px; height: 24px; border-radius: 7px; background: rgb(1 10 19 / 0.45); box-shadow: inset 0 0 0 1px rgb(217 189 130 / 0.4); cursor: pointer; transition: background 0.2s, box-shadow 0.2s; }
+[role="switch"]::after { content: ""; position: absolute; top: 7px; left: 8px; width: 10px; height: 10px; border-radius: 2px; background: var(--gold); transform: translateX(0) rotate(45deg); transition: transform 0.3s var(--ease), background 0.2s; }
+[role="switch"]:hover:not(:disabled, :checked) { box-shadow: inset 0 0 0 1px var(--gold); }
+[role="switch"]:checked { background: color-mix(in srgb, var(--teal) 22%, transparent); box-shadow: inset 0 0 0 1px var(--teal); }
+[role="switch"]:checked::after { background: var(--teal); transform: translateX(18px) rotate(135deg); }
+[role="switch"]:disabled { opacity: 0.45; cursor: not-allowed; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

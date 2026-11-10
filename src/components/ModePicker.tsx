@@ -62,11 +62,19 @@ export default function ModePicker() {
     setPeek(null);
   }
 
+  function moveFocus(e: React.KeyboardEvent<HTMLElement>) {
+    const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const all = [...e.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')];
+    all[(all.indexOf(document.activeElement as HTMLButtonElement) + step + all.length) % all.length]?.focus();
+  }
+
   return (
     <section className="pick" aria-labelledby="h-queue">
       <div className="head">
         <h2 id="h-queue">Coda</h2>
-        {!!c.games && <span className="hint">In ordine di uso; il numero conta le tue ultime {c.games} partite</span>}
+        {!!c.games && <span className="hint">Per uso nelle ultime {c.games} partite</span>}
       </div>
       <div className="modes" ref={modes}>
         {cards.map((card) => {
@@ -78,12 +86,15 @@ export default function ModePicker() {
                 {open && card.video ? (
                   // Riot's own "mode selected" flourish, played once each time the card opens.
                   <video className="mode-icon" src={asset(card.video)} poster={card.icon ? asset(card.icon) : undefined} autoPlay muted playsInline></video>
-                ) : card.icon && (
+                ) : card.icon ? (
                   <img className="mode-icon" src={asset(card.icon)} alt="" />
+                ) : (
+                  // Custom games have no art of their own: a drawn mark, so the card is not mistaken for another map.
+                  <svg className="mode-icon drawn" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10" /><circle cx="16" cy="7" r="2" /><circle cx="8" cy="17" r="2" /></svg>
                 )}
                 <span className="mode-name">{card.name}</span>
               </button>
-              <div className="variants" role="radiogroup" aria-label={card.name} inert={!open}>
+              <div className="variants" role="radiogroup" aria-label={card.name} inert={!open} onKeyDown={moveFocus}>
                 {card.items.map((item) => (
                   <button
                     key={item.id}

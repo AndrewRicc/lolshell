@@ -1,12 +1,17 @@
 /* Controls */
 .bar { position: relative; padding: 8px 348px 20px 32px; }
-.bar .actions { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
-.bar .primary { min-width: 220px; height: 52px; padding: 0 32px; background: var(--teal); color: #01221f; border-radius: 999px; box-shadow: var(--lift); font: 400 17px/1 var(--display); letter-spacing: 0.1em; text-transform: uppercase; transition: background 0.15s; }
+/* The controls are a pane like the panels above it: same width, same glass, same corners.
+   Inside, the corners follow the pane's (18px radius less the 8px inset). */
+.bar .actions { display: flex; align-items: center; gap: 8px; max-width: 860px; padding: 8px; }
+.bar .primary { min-width: 280px; height: 56px; padding: 0 36px; background: var(--teal); color: #01221f; border-radius: 10px; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), 0 8px 22px rgb(0 0 0 / 0.3); font: 400 19px/1 var(--display); letter-spacing: 0.1em; text-transform: uppercase; transition: background 0.15s; }
 .bar .primary:hover:not(:disabled) { background: #5cebdf; }
-.bar .primary:active:not(:disabled) { transform: translateY(1px); }
-.bar .primary:disabled { background: var(--fill-hi); color: var(--muted); box-shadow: none; }
+.bar .primary:disabled { background: var(--fill); color: var(--muted); box-shadow: none; }
+.bar .quiet { height: 56px; padding: 0 22px; border-radius: 10px; background: var(--fill); }
+.bar .quiet:hover:not(:disabled) { background: var(--fill-hi); }
 /* anime.js drives the primary button's scale and opacity (ready pulse, queue entrance, click squash): no CSS transform transition. */
-.bar .auto { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.bar .decline { margin-left: 8px; font-size: 13px; }
+.bar .auto { display: flex; align-items: center; gap: 12px; height: 56px; margin-left: auto; padding: 0 16px; border-radius: 10px; cursor: pointer; transition: background 0.15s; }
+.bar .auto:hover { background: var(--fill); }
 .bar .auto span { display: grid; }
 .bar .auto b { font-weight: 600; }
 .bar .auto.on small { color: var(--teal); }

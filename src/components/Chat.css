@@ -3,7 +3,7 @@
 .chat-dock { position: absolute; inset: 0; z-index: 2; pointer-events: none; transition: translate 0.45s var(--ease), opacity 0.3s; }
 .chat-dock > * { pointer-events: auto; }
 .chat-dock.away { translate: 420px 0; opacity: 0; transition-duration: 0.35s, 0.25s; }
-.chat-launcher { position: absolute; right: 24px; bottom: 84px; display: grid; place-items: center; width: 52px; height: 52px; padding: 0; border-radius: 50%; background: var(--solid); box-shadow: var(--edge), var(--lift); color: var(--gold); transition: scale 0.3s var(--ease), opacity 0.2s, color 0.15s; }
+.chat-launcher { position: absolute; right: 24px; bottom: 84px; display: grid; place-items: center; width: 52px; height: 52px; padding: 0; border-radius: 16px; background: var(--solid); box-shadow: var(--edge), var(--lift); color: var(--gold); transition: scale 0.3s var(--ease), opacity 0.2s, color 0.15s; }
 .glass .chat-launcher { background: var(--glass); backdrop-filter: blur(22px) saturate(1.4); }
 .chat-launcher:hover { scale: 1.06; color: var(--cream); }
 .chat-launcher svg { width: 22px; height: 22px; }

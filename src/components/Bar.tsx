@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSnapshot } from 'valtio';
 import { animate, stagger } from 'animejs';
 import { settings, play, cancelSearch, accept, decline, myAction, lockIn, reroll, quitSelect, playAgain, leaveSummary } from '../lib/client.ts';
@@ -45,6 +45,18 @@ export default function Bar() {
     void play();
   };
 
+  // Keyboard: Enter presses the main button when no control has focus, Esc leaves the queue.
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (e.repeat || e.ctrlKey || e.altKey || e.metaKey) return;
+      const idle = document.activeElement === document.body || !document.activeElement;
+      if (e.key === 'Enter' && idle) document.querySelector<HTMLButtonElement>('.bar .primary:not(:disabled)')?.click();
+      else if (e.key === 'Escape' && view.stage === 'queue' && !document.querySelector(':popover-open, dialog[open]')) void cancelSearch();
+    };
+    document.addEventListener('keydown', key);
+    return () => document.removeEventListener('keydown', key);
+  }, []);
+
   const blocked =
     !q ? (c.queues.length ? 'Nessuna coda disponibile in questo momento.' : 'Carico le code…')
       : c.lobby && !me?.allowedStartActivity ? 'Solo il capo party può avviare la ricerca.'
@@ -59,7 +71,7 @@ export default function Bar() {
         {stage === 'lobby' ? (
           <button className="primary" ref={btn} onClick={go} disabled={!!blocked || c.busy}>{!q?.custom ? 'Trova partita' : c.lobby ? 'Avvia partita' : 'Crea lobby'}</button>
         ) : stage === 'queue' ? <>
-          <button className="primary" onClick={cancelSearch} disabled={c.busy}>Annulla ricerca</button>
+          <button className="primary" onClick={cancelSearch} disabled={c.busy} aria-keyshortcuts="Escape">Annulla ricerca</button>
           {desktop && <button className="quiet" onClick={hide}>Nascondi nella tray</button>}
         </> : stage === 'select' ? <>
           {action?.isInProgress && (
@@ -69,14 +81,14 @@ export default function Bar() {
             <button className="quiet" onClick={reroll} disabled={c.busy || !c.select!.rerollsRemaining}>Cambia campione ({c.select!.rerollsRemaining})</button>
           )}
           {(c.select!.isCustomGame || c.select!.showQuitButton) && (
-            <button className="quiet" onClick={quitSelect} disabled={c.busy}>Esci</button>
+            <button className="quiet" onClick={quitSelect} disabled={c.busy}>Esci dalla selezione</button>
           )}
         </> : stage === 'post' ? <>
           <button className="primary" onClick={playAgain} disabled={c.busy}>Gioca ancora</button>
-          <button className="quiet" onClick={leaveSummary} disabled={c.busy}>Esci</button>
+          <button className="quiet" onClick={leaveSummary} disabled={c.busy}>Chiudi riepilogo</button>
         </> : response !== 'Declined' && <>
           <button className="primary" ref={btn} onClick={accept} disabled={c.busy || response !== 'None'}>Accetta</button>
-          {response === 'None' && <button className="quiet" onClick={decline} disabled={c.busy}>Rifiuta</button>}
+          {response === 'None' && <button className="link decline" onClick={decline} disabled={c.busy}>Rifiuta</button>}
         </>}
         {stage !== 'select' && stage !== 'post' && (
           <label className={set.autoAccept ? 'auto on' : 'auto'}>

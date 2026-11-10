@@ -1,19 +1,26 @@
 /* Party: one slot per seat, side by side like Riot's lobby */
 /* Always the same height: the seats share it, five across or as many as the queue allows; more than five fold into two rows. */
-[aria-labelledby="h-party"] .party { display: grid; grid-template-columns: repeat(var(--cols, 5), minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); gap: 8px; height: 114px; }
-[aria-labelledby="h-party"] .party > li:not(.member) { display: grid; }
+[aria-labelledby="h-party"] .party { display: grid; grid-template-columns: repeat(var(--cols, 5), minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); gap: 8px; height: 128px; }
 [aria-labelledby="h-party"] .member { position: relative; display: grid; justify-items: center; align-content: start; gap: 4px; min-width: 0; min-height: 0; padding: 10px 8px 8px; background: var(--fill); border-radius: 14px; text-align: center; }
-[aria-labelledby="h-party"] .member img { border-radius: 50%; }
+[aria-labelledby="h-party"] .member img { width: 52px; height: 52px; border-radius: 50%; box-shadow: 0 0 0 2px rgb(217 189 130 / 0.55), 0 6px 16px rgb(0 0 0 / 0.4); }
 [aria-labelledby="h-party"] .member-name { display: flex; align-items: center; gap: 6px; max-width: 100%; font-weight: 600; }
 [aria-labelledby="h-party"] .member-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 [aria-labelledby="h-party"] .member-name svg { width: 16px; height: 16px; color: var(--gold); }
 [aria-labelledby="h-party"] .member-roles { display: flex; gap: 6px; }
 [aria-labelledby="h-party"] .member-team { font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--gold); }
 [aria-labelledby="h-party"] .member.free { align-content: center; gap: 6px; background: rgb(255 255 255 / 0.03); color: var(--muted); font-size: 12px; }
+[aria-labelledby="h-party"] .party > li:not(.member) { display: grid; }
 [aria-labelledby="h-party"] button.member.free:hover:not(:disabled) { background: var(--fill); color: var(--cream); }
+/* A suggested friend sits in the seat like a member would, dimmed until you invite them. */
+[aria-labelledby="h-party"] .member.suggest { align-content: start; gap: 4px; padding: 10px 8px 8px; color: var(--cream); }
+[aria-labelledby="h-party"] .member.suggest img { opacity: 0.6; box-shadow: 0 0 0 2px rgb(255 255 255 / 0.15); transition: opacity 0.15s; }
+[aria-labelledby="h-party"] .member.suggest:hover:not(:disabled) img { opacity: 1; }
+[aria-labelledby="h-party"] .member.suggest .member-name { font-weight: 400; }
+[aria-labelledby="h-party"] .member.suggest small { color: var(--teal); }
 [aria-labelledby="h-party"] .member-actions { position: absolute; top: 6px; right: 6px; display: grid; gap: 4px; }
 [aria-labelledby="h-party"] .member-actions .icon { width: 24px; height: 24px; }
 [aria-labelledby="h-party"] .member-actions svg { width: 14px; height: 14px; }
+[aria-labelledby="h-party"] .member-actions .armed { background: var(--red); color: var(--ink); }
 /* More than five seats (custom games): slim rows, five across. */
 [aria-labelledby="h-party"] .big { grid-template-rows: repeat(2, minmax(0, 1fr)); }
 [aria-labelledby="h-party"] .big .member { grid-template-columns: 32px minmax(0, 1fr); justify-items: start; align-content: center; column-gap: 10px; row-gap: 0; padding: 6px 10px; text-align: left; }
@@ -21,6 +28,7 @@
 [aria-labelledby="h-party"] .big .member:has(.member-actions) { padding-right: 62px; }
 [aria-labelledby="h-party"] .big .member-actions { top: 12px; grid-auto-flow: column; }
 [aria-labelledby="h-party"] .big .member.free { display: flex; align-items: center; }
+
 
 [aria-labelledby="h-party"] .role-menu button { display: grid; justify-items: center; gap: 2px; width: 54px; color: var(--gold); padding: 8px 0 6px; font-size: 11px; }
 [aria-labelledby="h-party"] .role-menu button[aria-checked="true"] { color: var(--teal); }
