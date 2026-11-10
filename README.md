@@ -36,7 +36,7 @@ rerolls, swaps and rune saving have only been exercised against simulated sessio
 
 ## Requirements
 
-- Windows 10 or 11 with League of Legends installed and started from the Riot Client
+- Windows 10 or 11 with the Riot Client and League of Legends installed
 - [Node.js](https://nodejs.org/) 22 or newer
 - [Rust](https://rustup.rs/) (stable, MSVC toolchain) with the Visual Studio C++ build tools
 - WebView2 runtime (included in Windows 11)
@@ -48,8 +48,9 @@ npm install
 npm run tauri dev
 ```
 
-Start League first, or at any time afterwards: lolshell finds the running client by itself and
-reconnects when the client restarts.
+lolshell starts the Riot Client and League by itself, and hides Riot's interface once connected.
+Signing in stays in Riot's own window (captcha, two-step, "stay signed in"): with "stay signed in"
+it happens only once. It also finds a client started by hand, and reconnects when it restarts.
 
 To build an installer:
 

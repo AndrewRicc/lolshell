@@ -32,15 +32,44 @@ fn parse_lockfile(s: &str) -> Option<Lcu> {
     })
 }
 
-/// Finds the running client. Re-read on every use: port and password change at each start,
-/// and the install folder differs from one PC to another (the Riot Client records it).
-fn lockfile() -> Option<Lcu> {
+/// What the Riot Client recorded about this PC's installs; the install folders differ per PC.
+fn installs() -> Option<Value> {
     let data = std::env::var("PROGRAMDATA").ok()?;
-    let installs = std::fs::read_to_string(format!("{data}\\Riot Games\\RiotClientInstalls.json")).ok()?;
-    let installs: Value = serde_json::from_str(&installs).ok()?;
-    installs["associated_client"].as_object()?.keys().find_map(|dir| {
+    serde_json::from_str(&std::fs::read_to_string(format!("{data}\\Riot Games\\RiotClientInstalls.json")).ok()?).ok()
+}
+
+/// Finds the running client. Re-read on every use: port and password change at each start.
+fn lockfile() -> Option<Lcu> {
+    installs()?["associated_client"].as_object()?.keys().find_map(|dir| {
         parse_lockfile(&std::fs::read_to_string(std::path::Path::new(dir).join("lockfile")).ok()?)
     })
+}
+
+/// The Riot Client exe: the one tied to the League install, else Riot's default.
+fn riot_client(installs: &Value) -> Option<String> {
+    let linked = installs["associated_client"].as_object().and_then(|m| m.values().find_map(Value::as_str));
+    linked.or_else(|| installs["rc_default"].as_str()).map(str::to_owned)
+}
+
+/// A client that crashed or was killed leaves its lockfile behind: only an open port means it runs.
+fn running(l: &Lcu) -> bool {
+    let port = l.port.parse().unwrap_or(0);
+    std::net::TcpStream::connect_timeout(&(std::net::Ipv4Addr::LOCALHOST, port).into(), Duration::from_millis(300)).is_ok()
+}
+
+/// Starts League through the Riot Client unless it is already running. Not waited on: the
+/// user may have to sign in first, in Riot's own window.
+#[tauri::command]
+fn launch() -> Result<(), String> {
+    if lockfile().is_some_and(|l| running(&l)) {
+        return Ok(());
+    }
+    let exe = installs().as_ref().and_then(riot_client).ok_or("Riot Client non trovato.")?;
+    std::process::Command::new(exe)
+        .args(["--launch-product=league_of_legends", "--launch-patchline=live"])
+        .spawn()
+        .map(drop)
+        .map_err(|e| e.to_string())
 }
 
 /// The only root trusted for the client's certificate.
@@ -157,13 +186,14 @@ async fn relay_events(app: tauri::AppHandle) {
 pub fn run() {
     tauri::Builder::default()
         .manage(http_client())
-        .invoke_handler(tauri::generate_handler![lcu])
+        .invoke_handler(tauri::generate_handler![lcu, launch])
         .register_asynchronous_uri_scheme_protocol("lcu", |ctx, rq, responder| {
             let http = ctx.app_handle().state::<reqwest::Client>().inner().clone();
             let path = rq.uri().path_and_query().map(|p| p.as_str().to_owned()).unwrap_or_default();
             tauri::async_runtime::spawn(async move { responder.respond(image(http, path).await) });
         })
         .setup(|app| {
+            let _ = launch(); // best effort: the offline screen has a button to retry and show why
             tauri::async_runtime::spawn(relay_events(app.handle().clone()));
             TrayIconBuilder::new()
                 .icon(app.default_window_icon().expect("app icon").clone())
@@ -195,6 +225,24 @@ mod tests {
         assert_eq!(l.auth, format!("Basic {}", STANDARD.encode("riot:s3cret")));
         assert!(parse_lockfile("").is_none());
         assert!(parse_lockfile("LeagueClient:1234:notaport:pw:https").is_none());
+    }
+
+    #[test]
+    fn riot_client_is_found_in_the_installs_file() {
+        let both = json!({"associated_client": {"D:/LoL/": "D:/RC/RiotClientServices.exe"}, "rc_default": "X"});
+        assert_eq!(riot_client(&both).as_deref(), Some("D:/RC/RiotClientServices.exe"));
+        assert_eq!(riot_client(&json!({"rc_default": "X"})).as_deref(), Some("X"));
+        assert!(riot_client(&json!({})).is_none());
+    }
+
+    #[test]
+    fn a_lockfile_left_by_a_closed_client_is_not_running() {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let l = parse_lockfile(&format!("LeagueClient:1:{port}:pw:https")).unwrap();
+        assert!(running(&l));
+        drop(listener);
+        assert!(!running(&l));
     }
 
     #[test]

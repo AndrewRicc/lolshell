@@ -30,6 +30,10 @@ export async function lcu(method: string, path: string, body?: unknown): Promise
 // Images served by the client itself (splash art, profile icons): never downloaded or bundled.
 export const asset = (path: string) => (tauri ? 'http://lcu.localhost' : '/lcu') + path;
 
+export async function launch(): Promise<void> {
+  if (tauri) await invoke('launch');
+}
+
 export type LcuEvent = { uri: string; eventType: string; data: any };
 
 export function onEvent(cb: (e: LcuEvent) => void) {
